@@ -102,7 +102,9 @@ ${n.clauses.map((c) => `<p class="clause">${escapeHtml(c)}</p>`).join('\n')}
 export function renderIndex(notices: Notice[], v: Volatile): string {
   const rows = notices
     .map(
-      (n) => `<tr><td>${escapeHtml(n.circularNo)}</td><td><a href="/circulars/${n.id}">${escapeHtml(n.title)}</a></td>
+      (
+        n,
+      ) => `<tr><td>${escapeHtml(n.circularNo)}</td><td><a class="notice-link" href="/circulars/${n.id}">${escapeHtml(n.title)}</a></td>
 <td>${escapeHtml(n.department)}</td><td>${formatDate(n.printedDate)}</td><td><a href="/circulars/${n.id}.pdf">PDF</a></td></tr>`,
     )
     .join('\n');

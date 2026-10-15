@@ -56,6 +56,8 @@ describe('classify: removal', () => {
     ['a search page', 'https://demo.gov.example/search?q=scholarship'],
     ['a 404 page', 'https://demo.gov.example/404.html'],
     ['an error page', 'https://demo.gov.example/error/notfound'],
+    ['the parent listing', 'https://demo.gov.example/notices/'],
+    ['a grandparent path', 'https://demo.gov.example/notices'],
   ])('redirected to %s', (_n, finalUrl) => {
     const r = classify(input({ fetch: fetchOk({ finalUrl, redirectChainLen: 1 }) }));
     expect(r.state).toBe('redirected');
@@ -67,6 +69,7 @@ describe('classify: removal', () => {
       'http://demo.gov.example/notices/scholarship/',
       'https://demo.gov.example/notices/scholarship?utm_source=x',
       'https://demo.gov.example/notices/scholarship-2026',
+      'https://demo.gov.example/notices/scholarship/annexure',
     ]) {
       expect(classify(input({ fetch: fetchOk({ finalUrl, redirectChainLen: 1 }) })).state).toBe('present');
     }
