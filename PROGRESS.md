@@ -7,7 +7,7 @@
 - [x] S2 core domain, tests >= 85 percent
 - [x] S3 demo site with admin mutations
 - [x] S4 watcher, writes to fake and live Arkiv
-- [ ] S5 indexer, derived data, API, live attribute-query endpoints
+- [x] S5 indexer, derived data, API, live attribute-query endpoints
 - [ ] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
 - [ ] S7 evidence bundle + CLI verify
@@ -123,6 +123,25 @@
   - With a fresh demo server: 6 `first_seen` (57 s), then a repeat pass with no writes, then `edit_deadline` on 001 gave `changed` with severity 2 for page and PDF. Reading `0xa26253a4…` back from the chain shows `deadline_date` 2026-11-20, the rule summary "Deadline changed from 2026-10-30 to 2026-11-20." and one `doc` for the `doc_id`.
   - 20 writes cost about 0.003 testnet GLM.
 - HUMAN: pick the real pages for the watchlist (check robots.txt and terms, fill the URLs, set `enabled: true`).
+
+### Stage 5
+
+- `packages/indexer`: `pnpm dev:indexer` (or `start`) runs the API on `PORT` with a read-only Arkiv client (no private key), a sync loop every `SYNC_INTERVAL_SECONDS`, and a liveness loop every `LIVENESS_INTERVAL_MINUTES`. Runs of one loop never overlap. Dependencies `better-sqlite3`, `fastify`, `pino` and `zod` are in the spec. `@types/better-sqlite3` is a dev dependency for its typings, and `@chronicle/demo-site` and `@chronicle/watcher` are dev dependencies for the integration test and the dev script. CORS, the 60 per minute per-IP rate limit (on `/api/*` only, so the web build's assets are not counted) and static serving are a few lines in `http-util.ts`, so no Fastify plugins were added.
+- Sync strategy: `observed_at_window`, not `block`. On Tiramisu about 1.8 entities are created per block by all users, so looking up every created entity is too slow. Each sync queries all `type=doc` and `type=index_snapshot`, plus `type=observation AND observed_at >= last_observed_at - 86400`. A full observation query runs on the first sync and then hourly, to catch watchers whose `observed_at` is far off. Only keys not seen before are fetched in full (`getEntity`, which also returns the creation tx hash). Attributes are validated with zod before the fetch; entities that fail (other projects on the shared chain can use `type=observation` too) go into an `ignored_keys` table and are not fetched again. If the client supports `subscribe`, an event only triggers an early sync, and polling stays the source of truth.
+- SQLite schema: the section 6 tables plus cached per-doc columns on `docs` (`current_state`, `current_seq`, `last_seen_ts`, `last_change_ts`, used by the list filters `state` and `changed_since`) and the `ignored_keys` table. Everything is recomputed from the mirror.
+- Derivation (`derive.ts`, pure functions) follows 5.3, with these readings of the spec:
+  - Only `live` or `expired` content observations count. A `deleted` or `modified` entity drops out of the version chain at the next recompute.
+  - Versions are kept per `normalizer_version`. Flags and the doc status use the normalizer version of the newest accepted observation.
+  - Current version: each creator's latest observation within 24 hours votes; a removal does not vote; with no votes, the hash of the newest accepted observation is current.
+  - Backdating: a printed date only counts when it differs from the previous version's printed date; otherwise every amendment that keeps the original date would be flagged. `last_modified_ts` counts as is. `seq = 1` is never flagged.
+  - Vantage disagreement compares content observations only within the same normalizer version. A removal state against a content state also counts; `unreachable` does not.
+  - Flags are reconciled per kind: same kind and same entity keys means the same flag (updated in place), and one that no longer applies gets `resolved_ts`. `missing` and `owner_modified` come from the liveness job and stay open.
+- Liveness: `getEntity` returns null both for expired and deleted entities. The indexer compares the mirrored `expires_block` (updated on each check, so renewals are followed) with the current block. An attribute or payload hash that differs from the mirror gives `modified` plus `owner_modified` (severity 3), and an owner change only updates `owner`.
+- API (section 7): responses use snake_case field names, except `/api/health`, which keeps the spec's `{ok, lastSyncTs, entityCount, chainHead}` (plus `lastLivenessTs`). Errors are `{error, code}` with codes `bad_request`, `not_found`, `rate_limited`, `arkiv_unavailable` (502) and `internal`. The `/api/arkiv/*` endpoints call `ArkivClient.query` on each request and return `source: "arkiv-live"`, the exact `where` (and `creator`), `block_number` and a cursor. They skip entities whose attributes fail validation and report how many as `ignored_invalid`. For `field=deadline|amount`, the query adds `deadline_ts >= 0` or `amount_paise >= 0`, then keeps only observations whose payload `changes` list that field; this is reported as `post_filter`. Timeline events have `kind` `observation`, `version` or `flag`; flag events carry the flag's kind as `flag_kind`.
+- Core changes (bug fixes, as the stage allows):
+  - `FakeArkivNetwork` takes an optional `clock`, so the head advances with time and block timestamps follow it. `ARKIV_MODE=fake` uses the wall clock. Without this, fake chain time drifted away from the watcher's `observed_at`, and every observation would have been flagged `clock_skew`.
+- `ARKIV_MODE=fake` chains live in one process, so `pnpm dev:fake` (after `pnpm build`) runs the demo site, one watcher and the indexer API on one in-memory chain. Verified on 16 Oct with `PORT=8090`, because a Windows system service holds 8080 on this machine: 6 docs, 12 mirrored entities, timeline with a version boundary, `/api/arkiv/changes` returned `source: "arkiv-live"`, and `/api/entities/:key` gave `matches_mirror: true`. The change flow (two watchers, `edit_deadline`, `vantage_disagreement`, live changes query) is covered by the in-process integration test.
+- HUMAN: confirm the explorer link formats (`/entity/<key>`, `/tx/<hash>`, `/address/<addr>`). The explorer is a single-page app that answers 200 for any path, so they could not be checked automatically.
 
 ## Cut list
 
