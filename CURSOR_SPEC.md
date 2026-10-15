@@ -167,6 +167,8 @@ Rules: attributes are string or numeric only. Numeric = JS number (safe integers
 
 Stage 1 may change limits (max attribute count, max payload size, key length). If so, update this section and `arkiv/schema.md` and note it in `PROGRESS.md`.
 
+> **Stage 1 results (applied in Stage 2):** at most 30 user attributes per entity; `str` values at most 128 UTF-8 bytes and never empty; numbers are stored as `u64`; payload limit 128 KB (observation payloads stay under 4 KB). Because of the 128-byte limit, the `doc` attribute `source_url` is only written when the canonical URL fits, and the `doc` payload always carries `source_url`. Free-text stretch attributes (`pdf_producer`, `sig_signer_org`) are truncated to 128 bytes. See `arkiv/schema.md`.
+
 ### 5.1 Common
 
 | Attribute | Type | Notes |
