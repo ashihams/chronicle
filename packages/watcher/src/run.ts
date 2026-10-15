@@ -15,6 +15,7 @@ import { createExtractor } from './extractor.js';
 import type { FetchFn } from './fetcher.js';
 import { startHealthServer, type HealthServer } from './health.js';
 import { Scheduler } from './scheduler.js';
+import { serializeWrites } from './serial.js';
 import { Watcher, type CheckOutcome } from './watcher.js';
 import { enabledSources, loadWatchlist } from './watchlist.js';
 
@@ -73,7 +74,7 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
   });
   const sources = enabledSources(watchlist, w.pollHoursDefault);
 
-  const arkiv = opts.arkiv ?? createArkivClient(config);
+  const arkiv = serializeWrites(opts.arkiv ?? createArkivClient(config));
   const address = arkiv.address();
   if (address === null) throw new WalletError('No wallet: set WATCHER_PRIVATE_KEY in the environment.');
   const balance = await arkiv.balance();

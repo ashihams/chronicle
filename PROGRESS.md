@@ -6,7 +6,7 @@
 - [x] S1 wrapper, fake client, probe results, friction entries
 - [x] S2 core domain, tests >= 85 percent
 - [x] S3 demo site with admin mutations
-- [x] S4 watcher, writes to fake and live Arkiv (fake verified; live run is HUMAN)
+- [x] S4 watcher, writes to fake and live Arkiv
 - [ ] S5 indexer, derived data, API, live attribute-query endpoints
 - [ ] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
@@ -117,7 +117,12 @@
   - Doc registration takes any writer's existing `doc` for the `doc_id` (earliest block wins), as the spec says the indexer deduplicates; renewal only extends entities this wallet owns.
   - `ARKIV_MODE=fake` keeps entities in the process's memory, so across separate `--once` runs only the local DB persists. That is enough for the acceptance flow: later runs reuse the cached doc key and compare against the stored hash.
 - Verified on 16 Oct with the CLI against the running demo site in fake mode: the first run wrote 6 docs and 6 `first_seen`; the second wrote nothing; `edit_deadline` gave `changed` with severity 2 (page and PDF); `remove_404` gave `removed_404`, `soft_remove` gave `soft_removed`, `redirect` gave `redirected`; a repeat run wrote nothing.
-- HUMAN: run the same flow against live Tiramisu with the funded wallet (`ARKIV_MODE=live`), and pick the real pages for the watchlist (check robots.txt and terms, fill the URLs, set `enabled: true`).
+- Writes go through `serializeWrites`, so one wallet sends one transaction at a time (concurrent sends from one account can race on the nonce); reads stay concurrent.
+- Live Tiramisu run on 16 Oct (owner's request), wallet A `0x34ccbad283b69a61bd8dd01b97fe6c27377524fe`, vantage `in-vps`, demo site on localhost, default 5 s per-host delay:
+  - A first pass hit a stale demo server left over from the fake-mode check, so it registered the 6 docs and wrote `removed_404` (001), `soft_removed` (002) and `redirected` (003) for page and PDF. Those entities are accurate records of what that server returned.
+  - With a fresh demo server: 6 `first_seen` (57 s), then a repeat pass with no writes, then `edit_deadline` on 001 gave `changed` with severity 2 for page and PDF. Reading `0xa26253a4…` back from the chain shows `deadline_date` 2026-11-20, the rule summary "Deadline changed from 2026-10-30 to 2026-11-20." and one `doc` for the `doc_id`.
+  - 20 writes cost about 0.003 testnet GLM.
+- HUMAN: pick the real pages for the watchlist (check robots.txt and terms, fill the URLs, set `enabled: true`).
 
 ## Cut list
 

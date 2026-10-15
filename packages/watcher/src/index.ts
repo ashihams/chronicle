@@ -7,6 +7,7 @@ export * from './policy.js';
 export * from './renew.js';
 export * from './run.js';
 export * from './scheduler.js';
+export * from './serial.js';
 export * from './summary.js';
 export * from './watcher.js';
 export * from './watchlist.js';
