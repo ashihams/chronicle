@@ -11,14 +11,14 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint && prettier --check .",
+    "lint": "pnpm -r lint && tsc -p tsconfig.scripts.json && prettier --check .",
     "format": "prettier --write .",
     "dev:demo": "pnpm --filter @chronicle/demo-site dev",
     "dev:watcher": "pnpm --filter @chronicle/watcher dev",
     "dev:indexer": "pnpm --filter @chronicle/indexer dev",
     "dev:web": "pnpm --filter @chronicle/web dev",
     "dev:bot": "pnpm --filter @chronicle/bot dev",
-    "probe": "tsx scripts/arkiv-probe.ts"
+    "probe": "tsx --env-file=.env scripts/arkiv-probe.ts"
   },
   "devDependencies": {
     "@types/node": "^20.16.0",

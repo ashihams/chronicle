@@ -1,0 +1,685 @@
+{
+  "probe_run": "pmv9v9e53+pmv9vith1+pmv9vjcbh",
+  "date": "2026-10-15T18:32:56.745Z",
+  "sdk_version": "0.8.1",
+  "rpc": "https://rpc.tiramisu.db-chain.testnet.arkiv.network",
+  "chain_id": 7738577,
+  "wallet_a": "0x34ccbad283b69a61bd8dd01b97fe6c27377524fe",
+  "wallet_b": "0x11d34e55bf7c8fc75fda5d073653d4b0768d817c",
+  "arkiv_processor_address": "0x4400000000000000000000000000000000000044",
+  "sync_strategy": "block",
+  "spent_wei": "16647684033295368",
+  "experiments": {
+    "e01_connectivity": {
+      "ok": true,
+      "title": "chain id, balances, current block",
+      "details": {
+        "chainId": 7738577,
+        "chainIdMatches": true,
+        "balanceA": "9984723171969446344",
+        "balanceB": "0",
+        "currentBlock": "619632",
+        "blockTiming": {
+          "currentBlock": "619632",
+          "currentBlockTime": 1792089030,
+          "blockDuration": 2
+        },
+        "entityCount": 8867
+      },
+      "ms": 2495
+    },
+    "e02_create_read": {
+      "ok": true,
+      "title": "create with string attributes and read back",
+      "details": {
+        "createMs": 3968,
+        "entityKey": "0x25b0c90280ecf0770970c022a094fb82e0144fe5f5cb5b9f85d07610c4484943",
+        "txHash": "0x27d5cd6a7735c14889bec858c95b7154bbbc8fbf58d7c73bf7b2a5cf26a607d9",
+        "expiresAtReturned": "662604",
+        "gas": {
+          "gasUsed": "100592",
+          "effectiveGasPrice": "1000000002",
+          "feeWei": "100592000201184",
+          "block": "619404"
+        },
+        "rawFieldsPresent": [
+          "key",
+          "owner",
+          "creator",
+          "createdAt",
+          "updatedAt",
+          "expiresAt",
+          "creationFlags",
+          "contentType",
+          "payload",
+          "attributeSchema",
+          "attributes"
+        ],
+        "raw": {
+          "owner": "0x34ccbad283B69A61bd8dD01b97fE6C27377524fE",
+          "creator": "0x34ccbad283B69A61bd8dD01b97fE6C27377524fE",
+          "createdAt": "619404",
+          "updatedAt": "619404",
+          "expiresAt": "662604",
+          "contentType": "application/json",
+          "creationFlags": {
+            "readonly": false,
+            "permissionlessExtension": false,
+            "raw": 0
+          },
+          "attributes": {
+            "label": {
+              "type": "str",
+              "value": "basic"
+            },
+            "note": {
+              "type": "str",
+              "value": "hello"
+            },
+            "probe_run": {
+              "type": "str",
+              "value": "pmv9v9e53"
+            },
+            "type": {
+              "type": "str",
+              "value": "probe"
+            }
+          }
+        },
+        "txHashOnEntity": false,
+        "wrapperRecord": {
+          "key": "0x25b0c90280ecf0770970c022a094fb82e0144fe5f5cb5b9f85d07610c4484943",
+          "creator": "0x34ccbad283b69a61bd8dd01b97fe6c27377524fe",
+          "owner": "0x34ccbad283b69a61bd8dd01b97fe6c27377524fe",
+          "createdAtBlock": "619404",
+          "expiresAtBlock": "662604",
+          "txHash": "0x27d5cd6a7735c14889bec858c95b7154bbbc8fbf58d7c73bf7b2a5cf26a607d9",
+          "attributes": {
+            "label": "basic",
+            "note": "hello",
+            "probe_run": "pmv9v9e53",
+            "type": "probe"
+          },
+          "payloadBytes": 21,
+          "payload": {
+            "probe": "pmv9v9e53"
+          },
+          "payloadSha256": "6688208d8afd480bde94a959c861cbffa17ab87882e877204945984cc7444e67"
+        },
+        "txHashViaLogsMatches": true
+      },
+      "ms": 5490
+    },
+    "e03_attribute_types": {
+      "ok": true,
+      "title": "attribute types, long strings, attribute count",
+      "details": {
+        "mixedTypes": {
+          "ok": true,
+          "entityKey": "0xf7bc5fcf80ee450dca3af07f86243e7f121d42d7676903cb1abbf3e190511884"
+        },
+        "mixedReadBack": {
+          "empty_str": {
+            "type": "str",
+            "value": ""
+          },
+          "flag": {
+            "type": "bool",
+            "value": true
+          },
+          "n_dec": {
+            "type": "dec",
+            "value": "3.5"
+          },
+          "n_i32": {
+            "type": "i32",
+            "value": 42
+          },
+          "n_u64_large": {
+            "type": "u64",
+            "value": "1099511627776"
+          },
+          "probe_run": {
+            "type": "str",
+            "value": "pmv9v9e53"
+          },
+          "s": {
+            "type": "str",
+            "value": "text"
+          },
+          "type": {
+            "type": "str",
+            "value": "probe"
+          }
+        },
+        "bareFloat": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid i32 value 1.5: not an integer. Use dec(\"1.5\") for a fixed-point decimal."
+        },
+        "bareLargeNumber": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid i32 value 1099511627776: outside the i32 range [-2147483648, 2147483647] — use u64(...) for large counters, timestamps and block heights (Date.now() does not fit an i32), or u256(...) beyond 2**64 - 1."
+        },
+        "bareBoolean": {
+          "ok": true,
+          "value": "0xcd27e29610f7b6cc3ed24807371f47e5632da925984029640d5fe519c79b6503"
+        },
+        "string_128": {
+          "ok": true
+        },
+        "string_129": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid str value \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\": 129 UTF-8 bytes exceeds the 128-byte limit on a str. Store the long form in the entity payload and keep a short, queryable key here."
+        },
+        "string_256": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid str value \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\": 256 UTF-8 bytes exceeds the 128-byte limit on a str. Store the long form in the entity payload and keep a short, queryable key here."
+        },
+        "string_1024": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid str value \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...\": 1024 UTF-8 bytes exceeds the 128-byte limit on a str. Store the long form in the entity payload and keep a short, queryable key here."
+        },
+        "attributes_10": {
+          "ok": true
+        },
+        "attributes_20": {
+          "ok": true
+        },
+        "attributes_30": {
+          "ok": true
+        },
+        "attributes_31": {
+          "ok": false,
+          "error": "TooManyAttributesError: An entity may carry at most 32 attributes, got 33."
+        },
+        "attributes_40": {
+          "ok": false,
+          "error": "TooManyAttributesError: An entity may carry at most 32 attributes, got 40."
+        },
+        "attributes_80": {
+          "ok": false,
+          "error": "TooManyAttributesError: An entity may carry at most 32 attributes, got 80."
+        },
+        "reservedName": {
+          "ok": false,
+          "error": "InvalidAttributeNameError: Invalid attribute name \"key\": \"key\" is reserved by the query language, so an attribute with this name could never be queried. Names must be 1-32 bytes, start with a letter, and contain only A-Z, a-z, 0-9, \".\", \"-\" or \"_\". Names are case-sensitive."
+        },
+        "nameWithDollar": {
+          "ok": false,
+          "error": "InvalidAttributeNameError: Invalid attribute name \"$x\": \"$\" is reserved for system attributes, which the engine sets and you cannot write. Names must be 1-32 bytes, start with a letter, and contain only A-Z, a-z, 0-9, \".\", \"-\" or \"_\". Names are case-sensitive."
+        }
+      },
+      "ms": 39183
+    },
+    "e04_payload_size": {
+      "ok": true,
+      "title": "payload size limits",
+      "details": {
+        "kb_1": {
+          "ok": true,
+          "ms": 3066,
+          "gas": {
+            "gasUsed": "111544",
+            "effectiveGasPrice": "1000000002",
+            "feeWei": "111544000223088",
+            "block": "619426"
+          }
+        },
+        "kb_4": {
+          "ok": true,
+          "ms": 7196,
+          "gas": {
+            "gasUsed": "202100",
+            "effectiveGasPrice": "1000000002",
+            "feeWei": "202100000404200",
+            "block": "619428"
+          }
+        },
+        "kb_16": {
+          "ok": true,
+          "ms": 7266,
+          "gas": {
+            "gasUsed": "693650",
+            "effectiveGasPrice": "1000000002",
+            "feeWei": "693650001387300",
+            "block": "619432"
+          }
+        },
+        "kb_64": {
+          "ok": true,
+          "ms": 7621,
+          "gas": {
+            "gasUsed": "2659850",
+            "effectiveGasPrice": "1000000002",
+            "feeWei": "2659850005319700",
+            "block": "619436"
+          }
+        },
+        "kb_120": {
+          "ok": true,
+          "ms": 7546,
+          "gas": {
+            "gasUsed": "4953670",
+            "effectiveGasPrice": "1000000002",
+            "feeWei": "4953670009907340",
+            "block": "619440"
+          }
+        },
+        "kb_129": {
+          "ok": false,
+          "error": "InvalidValueError: Invalid bytes value \"<132096 bytes>\": 132096 bytes exceeds the 131072-byte payload limit. Store the bulk elsewhere and keep a reference to it on the entity."
+        },
+        "maxAcceptedKb": 120
+      },
+      "ms": 34360
+    },
+    "e05_query": {
+      "ok": true,
+      "title": "eq, prefix, ranges, AND, $creator/$owner/$key, ordering, pagination",
+      "details": {
+        "batchTx": "0x79516c59d3ada260898987816d9e63371a901479d45da6b55fadd055ac69f5b0",
+        "eq_string": 1,
+        "prefix_odd": 3,
+        "gt_3": 2,
+        "gte_3": 3,
+        "lt_2": 1,
+        "lte_2": 2,
+        "and_prefix_gte": 2,
+        "bare_number_eq_on_u64": 0,
+        "creator_filter": 5,
+        "owner_filter": 5,
+        "creator_filter_other": 0,
+        "key_filter": 1,
+        "string_range_raw": {
+          "ok": false,
+          "error": "QueryError: Query rejected (type, -32002): Requested resource not available.. Query: type = str('probe') AND probe_run = str('pmv9vjcbh') AND qtag > str('a')"
+        },
+        "glob_raw": {
+          "ok": false,
+          "error": "QueryError: Query rejected (parse, -32001): Requested resource not found.. Query: probe_run = str('pmv9vjcbh') AND qtag GLOB str('odd-*')"
+        },
+        "tilde_raw": {
+          "ok": false,
+          "error": "QueryError: Query rejected (parse, -32001): Requested resource not found.. Query: probe_run = str('pmv9vjcbh') AND qtag ~ str('odd-*')"
+        },
+        "resultOrder": [
+          "5",
+          "3",
+          "2",
+          "1",
+          "4"
+        ],
+        "creationOrder": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "cursorSample": "b64:JmKFWJw3QDMAAAAAAA0-",
+        "pageSizes": [
+          2,
+          2,
+          1
+        ],
+        "orderBySupported": false
+      },
+      "ms": 14816
+    },
+    "e06_created_after_block": {
+      "ok": true,
+      "title": "query by creation block; event logs as a sync source",
+      "details": {
+        "markerCreatedAt": "619642",
+        "createdAtQuerySdk": {
+          "ok": false,
+          "error": "InvalidPredicateError: \"$createdAt\" is returned in query results but carries no index, so it cannot be filtered on. Select it and filter the results in JavaScript instead."
+        },
+        "createdAtRaw_gte_own_block": {
+          "ok": true,
+          "value": 1
+        },
+        "createdAtRaw_gt_own_block": {
+          "ok": true,
+          "value": 0
+        },
+        "createdAtRaw_lt_own_block": {
+          "ok": true,
+          "value": 0
+        },
+        "createdAtRawFilterCorrect": true,
+        "logsLast200Blocks": 352,
+        "logsIncludeMarker": true,
+        "logsRange_1000": {
+          "ok": true,
+          "value": 1486
+        },
+        "logsRange_2000": {
+          "ok": true,
+          "value": 2866
+        },
+        "logsRange_5000": {
+          "ok": true,
+          "value": 7528
+        },
+        "logsRange_10000": {
+          "ok": true,
+          "value": 14598
+        },
+        "logsRange_50000": {
+          "ok": false,
+          "error": "InvalidParamsRpcError: Invalid parameters were provided to the RPC method. Double check you have provided the correct parameters."
+        },
+        "maxLogRangeBlocks": "10000",
+        "syncStrategy": "block",
+        "reason": "EntityCreated logs list every entity created in a block range (with tx hash); page in windows of <= 10000 blocks"
+      },
+      "ms": 47573
+    },
+    "e07_expiry": {
+      "ok": true,
+      "title": "min/max expiresIn, behavior after expiry, extend",
+      "details": {
+        "minLifetimeOneBlock": {
+          "ok": true,
+          "value": {
+            "entityKey": "0x89557e3c00ff138b383ad8624ed4dc8e9243cc6e0d04f52f33590232474a7413",
+            "expiresAt": "619667",
+            "readableRightAfter": false
+          }
+        },
+        "oddSeconds": {
+          "ok": false,
+          "error": "InvalidExpiryError: Invalid expiry: a lifetime must be a multiple of the 2s block time, got 3, which is 1.5 blocks. Try 2 or 4, or ExpirationTime.fromBlocks(n)."
+        },
+        "short": {
+          "entityKey": "0x023a0cc6b4f9dc75e36a9874d70fa73c8397ff6f486f88bc134aed884571a2cf",
+          "createdAt": "619669",
+          "expiresAt": "619675",
+          "txHash": "0xe41c7ed80e8541a20fbc8ffccd4244992dbcef604d09c4fa2b6d2b75df976ed3"
+        },
+        "afterExpiry_getEntity": {
+          "ok": false,
+          "error": "NoEntityFoundError: No live entity with key 0x023a0cc6b4f9dc75e36a9874d70fa73c8397ff6f486f88bc134aed884571a2cf. It was never created, or it has been deleted or has expired."
+        },
+        "afterExpiry_query": 0,
+        "afterExpiry_queryAtBlockBefore": {
+          "ok": true,
+          "value": 1
+        },
+        "extend": {
+          "before": "619828",
+          "returned": "620580",
+          "readBack": "620580",
+          "deltaBlocks": "752"
+        },
+        "extendShorter": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: entity 0x5a089fec…bbe226 already expires at block 620580, so extending it to 619710 would shorten its life"
+        },
+        "extendViaWrapper": {
+          "ok": true,
+          "expiresAtBlock": "621482"
+        },
+        "tenYears": {
+          "ok": true,
+          "value": {
+            "expiresAt": "158299684",
+            "deletedAfter": true
+          }
+        },
+        "permanent": {
+          "ok": true,
+          "value": {
+            "expiresAt": "18446744073709551615",
+            "deletedAfter": true
+          }
+        }
+      },
+      "ms": 57846
+    },
+    "e08_permissions": {
+      "ok": true,
+      "title": "owner update/delete vs. other wallet",
+      "details": {
+        "ownerPatch": {
+          "ok": true
+        },
+        "afterOwnerPatch": {
+          "state": {
+            "type": "str",
+            "value": "v2"
+          },
+          "createdAt": "619695",
+          "updatedAt": "619698"
+        },
+        "walletBFunded": false,
+        "otherPatch": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+        },
+        "otherExtend": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+        },
+        "otherDelete": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+        },
+        "otherTransfer": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+        },
+        "unchangedAfterOtherAttempts": true,
+        "ownerTransferToB": {
+          "ok": true
+        },
+        "afterTransfer": {
+          "owner": "0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c",
+          "creator": "0x34ccbad283B69A61bd8dD01b97fE6C27377524fE"
+        },
+        "formerOwnerPatch": {
+          "ok": false,
+          "error": "EntityMutationError: Transaction failed: entity 0x37a94f0a…41d616 is owned by 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c, not 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE"
+        }
+      },
+      "ms": 25158
+    },
+    "e09_delete": {
+      "ok": true,
+      "title": "getEntity/query after delete; historical query",
+      "details": {
+        "createdAt": "619494",
+        "deletedInBlock": "619498",
+        "getEntityAfterDelete": {
+          "ok": false,
+          "error": "NoEntityFoundError: No live entity with key 0x6f86def5ce18e2c0a7d13c8f819123e2bc83d9c1d7adeb892176082590a98586. It was never created, or it has been deleted or has expired."
+        },
+        "queryAfterDelete": 0,
+        "queryAtBlockBeforeDelete": {
+          "ok": true,
+          "value": 1
+        },
+        "wrapperGetEntity": null
+      },
+      "ms": 15300
+    },
+    "e10_calldata_recovery": {
+      "ok": true,
+      "title": "original payload recoverable from the creating transaction",
+      "details": {
+        "txTo": "0x4400000000000000000000000000000000000044",
+        "txFrom": "0x34ccbad283b69a61bd8dd01b97fe6c27377524fe",
+        "inputBytes": 1412,
+        "payloadFoundInCalldata": true,
+        "expiredEntityTxStillAvailable": true,
+        "expiredPayloadFoundInCalldata": true
+      },
+      "ms": 833
+    },
+    "e11_subscription": {
+      "ok": true,
+      "title": "event subscription (HTTP polling and WebSocket)",
+      "details": {
+        "httpPolling": {
+          "ok": true,
+          "value": {
+            "received": true,
+            "msAfterCreateReturned": 0,
+            "createMs": 6922
+          }
+        },
+        "webSocket": {
+          "ok": true,
+          "value": {
+            "received": true,
+            "msAfterCreateReturned": 0,
+            "createMs": 4555
+          }
+        },
+        "wrapperSubscribe": {
+          "ok": true,
+          "value": true
+        }
+      },
+      "ms": 23960
+    },
+    "e12_throughput": {
+      "ok": true,
+      "title": "20 sequential creates vs one batch of 20",
+      "details": {
+        "sequential": {
+          "count": 20,
+          "ms": 121018,
+          "msPerEntity": 6050.9,
+          "gasTotal": "2011840",
+          "feeWei": "2011840004023680"
+        },
+        "batch": {
+          "count": 20,
+          "ms": 7796,
+          "gasTotal": "2007520",
+          "feeWei": "2007520004015040"
+        }
+      },
+      "ms": 128814
+    },
+    "e13_block_timestamp": {
+      "ok": true,
+      "title": "timestamp of an entity creation block",
+      "details": {
+        "createdAtBlock": "619404",
+        "blockTimestamp": 1792088574,
+        "blockTimestampIso": "2026-10-15T18:22:54.000Z",
+        "localNow": 1792088919,
+        "secondsAgo": 345,
+        "headBlock": "619577",
+        "headTimestamp": "1792088920"
+      },
+      "ms": 916
+    },
+    "e14_explorer_links": {
+      "ok": true,
+      "title": "explorer URL formats",
+      "details": {
+        "base": {
+          "url": "https://tiramisu.explorer.arkiv.network",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "address": {
+          "url": "https://tiramisu.explorer.arkiv.network/address/0x34ccbad283b69a61bd8dd01b97fe6c27377524fe",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "processor": {
+          "url": "https://tiramisu.explorer.arkiv.network/address/0x4400000000000000000000000000000000000044",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "block": {
+          "url": "https://tiramisu.explorer.arkiv.network/block/619577",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "tx": {
+          "url": "https://tiramisu.explorer.arkiv.network/tx/0x27d5cd6a7735c14889bec858c95b7154bbbc8fbf58d7c73bf7b2a5cf26a607d9",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "entity": {
+          "url": "https://tiramisu.explorer.arkiv.network/entity/0x25b0c90280ecf0770970c022a094fb82e0144fe5f5cb5b9f85d07610c4484943",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        },
+        "entities": {
+          "url": "https://tiramisu.explorer.arkiv.network/entities/0x25b0c90280ecf0770970c022a094fb82e0144fe5f5cb5b9f85d07610c4484943",
+          "status": {
+            "ok": true,
+            "value": 200
+          }
+        }
+      },
+      "ms": 3717
+    }
+  },
+  "friction": [
+    {
+      "experiment": "e05_query",
+      "title": "A bare JS number in a query silently matches nothing against u64 attributes",
+      "tried": "client.query(eq('qn', 2)) where qn was written as u64(2)",
+      "expected": "Numeric equality matches the stored number",
+      "actual": "0 results, no error. A bare number is an i32 literal, and a type mismatch matches nothing",
+      "impact": "Easy to miss in application code; Chronicle always wraps numbers in u64() in the ArkivClient wrapper",
+      "fix": "Warn or error in the SDK when a predicate type cannot match the attribute type; document prominently"
+    },
+    {
+      "experiment": "e06_created_after_block",
+      "title": "The node filters on $createdAt, but the SDK refuses to build that predicate",
+      "tried": "gt('$createdAt', u64(N)) via @arkiv-network/sdk/query, then the raw string \"... AND $createdAt >= u64(N)\" via client.query(string)",
+      "expected": "Either both work or both fail (the SDK says $createdAt \"carries no index\")",
+      "actual": "The SDK throws InvalidPredicateError; the raw string query returns correct results (>= own block: 1, > own block: 0, < own block: 0)",
+      "impact": "Incremental sync by creation block needs an unchecked raw query string, or event logs",
+      "fix": "Allow $createdAt in QUERYABLE_SYSTEM_ATTRIBUTES, or document that the node supports it"
+    },
+    {
+      "experiment": "e06_created_after_block",
+      "title": "eth_getLogs rejects wide block ranges with a generic error",
+      "tried": "publicClient.getLogs({ address: 0x4400000000000000000000000000000000000044, event: EntityCreated, fromBlock: head-50000, toBlock: head })",
+      "expected": "Either results or an error naming the maximum range",
+      "actual": "InvalidParamsRpcError \"Invalid parameters were provided to the RPC method\". Largest range that worked: 10000 blocks",
+      "impact": "Indexer must page event logs in windows of at most the working range",
+      "fix": "Document the eth_getLogs range limit and return it in the error message"
+    },
+    {
+      "experiment": "e07_expiry",
+      "title": "A one-block lifetime is accepted but the entity is never readable",
+      "tried": "createEntity({ ..., expires: ExpirationTime.fromBlocks(1) }) then getEntity(key)",
+      "expected": "Either rejected as dead on arrival, or readable for one block",
+      "actual": "The create succeeds (gas is spent), but getEntity right after the receipt throws NoEntityFoundError",
+      "impact": "None for Chronicle (we use 180 days); a trap for short-lived data",
+      "fix": "Reject lifetimes that cannot outlive the inclusion block, or document the minimum useful lifetime"
+    },
+    {
+      "experiment": "e08_permissions",
+      "title": "Non-owner mutation from an unfunded wallet fails without a reason",
+      "tried": "patchEntity / extendEntity / deleteEntity / changeOwnership from a wallet with 0 balance on an entity it does not own",
+      "expected": "A NotOwner(entityKey, caller, owner) error, as the SDK reports for funded callers",
+      "actual": "EntityMutationError: \"EntityMutationError: Transaction failed: Execution error without revert data\"",
+      "impact": "Cannot tell \"not the owner\" apart from \"no gas\" when testing permissions",
+      "fix": "Decode the revert during simulation regardless of balance, or say that the caller has no funds"
+    }
+  ]
+}
