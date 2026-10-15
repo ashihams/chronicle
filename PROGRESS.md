@@ -69,7 +69,7 @@
 
 ### Stage 2
 
-- New dependencies (all listed in CURSOR_SPEC.md): `cheerio`, `diff` (jsdiff 9), `@anthropic-ai/sdk`, and `pdf-lib` (dev, for synthetic test PDFs). Extra dev dependency not in the spec: `@vitest/coverage-v8`, needed to measure the 85 percent coverage requirement. `pnpm coverage` runs it, and CI enforces the threshold.
+- New dependencies (all listed in CURSOR_SPEC.md): `cheerio`, `diff` (jsdiff 9), and `pdf-lib` (dev, for synthetic test PDFs). Extra dev dependency not in the spec: `@vitest/coverage-v8`, needed to measure the 85 percent coverage requirement. `pnpm coverage` runs it, and CI enforces the threshold.
 - Poppler for local development on Windows: the portable build from github.com/oschwartz10612/poppler-windows, unpacked to `%USERPROFILE%\tools\poppler` and added to the user PATH. PDF tests skip locally when poppler is missing, but never in CI (`CI=true`).
 - Data model changes from the Stage 1 limits are in CURSOR_SPEC.md section 5 and `arkiv/schema.md`: `doc.source_url` is an attribute only when the canonical URL is at most 128 bytes, and the doc payload always has `source_url`.
 - Choices where the spec was silent or would misfire:
@@ -77,7 +77,8 @@
   - HTML extraction adds a line break after block elements, so `last updated[^.\n]*` cannot swallow the next paragraph. The noise class `ad-` only matches at the start of a class token or after `-`/`_`; the spec's plain substring would drop `download-link` and `lead-in`.
   - Classification: any other non-2xx status (401, 403, 429, an unfollowed 3xx) is `unreachable`, because it says nothing about the document. Soft-removal phrases only count on pages of at most 1000 normalized characters, so a long notice mentioning "withdrawn" is not marked removed. For PDFs the 200-character rule is replaced by the PDF rules (no PDF header, or the text layer disappeared), so scanned PDFs are not soft-removed.
   - PDF text under 50 characters means "scanned"; `normSha256` is then the raw-bytes hash. A file poppler cannot read is treated the same way; only a missing poppler binary throws.
-  - Extraction: the Anthropic call uses structured outputs (`output_config.format` with a JSON schema). Zod is strict on types, `summary_en` and `severity`; invalid dates, slugs and negative amounts become null instead of failing the whole extraction. Dates before 1970 become null because timestamps are u64.
+  - LLM provider: Groq instead of Anthropic (owner's request, 16 Oct). `GroqLlmClient` calls the OpenAI-compatible chat completions endpoint with plain `fetch` (no SDK dependency) and strict structured outputs (`response_format: { type: "json_schema", json_schema: { strict: true } }`). Default model `openai/gpt-oss-120b`, one of the models Groq lists for strict mode. Environment variables `GROQ_API_KEY` and `GROQ_MODEL` replace `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. `@anthropic-ai/sdk` was removed.
+  - Extraction: Zod is strict on types, `summary_en` and `severity`; invalid dates, slugs and negative amounts become null instead of failing the whole extraction. Dates before 1970 become null because timestamps are u64.
   - `changes` in the observation payload: a `text` change carries the previous and new normalized hashes, never text; amounts are rupee strings with two decimals; removals record `{ field: "removed", from: <previous state>, to: <state> }`.
 - Coverage of `packages/core`: 90.7 percent lines (267 tests). `src/arkiv/live.ts` is the only low file (34 percent) because it needs the live network; the probe exercises it.
 

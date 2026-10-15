@@ -65,7 +65,7 @@ alwaysApply: true
 - Storage (off-chain derived data only): SQLite via `better-sqlite3`.
 - HTML parsing: cheerio. Text diff: `diff` (jsdiff). Robots: `robots-parser`. CLI: `commander`.
 - PDF: poppler-utils binaries `pdftotext`, `pdfinfo`, `pdfsig` called via `child_process.execFile` (installed in Docker; install locally with `brew install poppler` or `apt-get install poppler-utils`). Demo PDFs generated with `pdf-lib`.
-- LLM: `@anthropic-ai/sdk`. Model from env `ANTHROPIC_MODEL`.
+- LLM: Groq (OpenAI-compatible chat completions API, called with `fetch`, strict structured outputs). Model from env `GROQ_MODEL`. (Changed from Anthropic at the owner's request on 16 Oct.)
 - Bot: `grammy` (long polling).
 - Web: Vite + React 18 + TypeScript + Tailwind + React Router + TanStack Query.
 - Docker + docker-compose. Reverse proxy on the VPS: Caddy.
@@ -136,8 +136,8 @@ OBSERVATION_TTL_DAYS=180
 RENEW_WHEN_DAYS_LEFT=30
 
 # LLM
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-5-5
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-120b
 
 # Indexer / API
 PORT=8080
@@ -507,7 +507,7 @@ zod `ExtractionSchema`:
   summary_en: string /* <=240 */, severity: 0|1|2|3, confidence: number /* 0..1 */ }
 ```
 `datesToTs(dateStr)` returns unix seconds of 00:00 IST for the date (use fixed offset +05:30). `inrToPaise(n)` = `Math.round(n*100)`.
-`extractFields(llm, { text, diffHunks, kind })`: calls Anthropic with the prompt in Appendix B, forces JSON, validates with zod, retries once on invalid JSON, and on final failure returns a null-field result with `confidence: 0` and `summary_en: "extraction failed"`. Never throws. Truncate input text to 12,000 chars. The `LlmClient` interface is injectable so tests use a stub.
+`extractFields(llm, { text, diffHunks, kind })`: calls Groq with the prompt in Appendix B, forces JSON, validates with zod, retries once on invalid JSON, and on final failure returns a null-field result with `confidence: 0` and `summary_en: "extraction failed"`. Never throws. Truncate input text to 12,000 chars. The `LlmClient` interface is injectable so tests use a stub.
 
 ### 2.7 Builders (`observation.ts`)
 `buildObservationAttrs(...)` and `buildObservationPayload(...)` that produce exactly the shapes in 5.3 and omit absent optional attributes. Enforce limits found in Stage 1 (payload size, attribute count) with explicit errors.
