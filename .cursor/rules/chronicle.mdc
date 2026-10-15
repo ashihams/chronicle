@@ -1,0 +1,17 @@
+---
+description: Chronicle project rules
+globs:
+alwaysApply: true
+---
+- Read CURSOR_SPEC.md before any change. Work on exactly one stage at a time.
+- TypeScript strict mode. No `any`. Validate all external input with zod.
+- ALL Arkiv access goes through packages/core/src/arkiv/ (ArkivClient interface). No other package imports @arkiv-network/sdk.
+- Never invent Arkiv SDK APIs. Read the SDK source and docs.arkiv.network. If unsure, write to arkiv/friction.md.
+- Never put secrets in the repo. Read secrets from environment variables only. .env is gitignored; keep .env.example current.
+- Never write personal data, Telegram IDs, chat content, user uploads, or full document text to Arkiv. Only hashes, short summaries, and extracted fields.
+- Attributes you will range-query must be numeric. Booleans are stored as numeric 0/1.
+- Every function with logic gets a vitest unit test. Use synthetic fixtures only. Never copy real government text into the repo.
+- Use pino for logging. Never log secrets, private keys, message contents, or chat IDs.
+- Small commits. Message format: "stage-N: <what>".
+- Do not add dependencies not listed in CURSOR_SPEC.md without writing the reason in PROGRESS.md.
+- When a requirement is ambiguous, pick the simplest option that satisfies the acceptance criteria and note it in PROGRESS.md.
