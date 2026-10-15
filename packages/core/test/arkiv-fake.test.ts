@@ -150,6 +150,21 @@ describe('FakeArkivClient', () => {
     expect((await a.query({ where: [{ attr: 'type', op: 'eq', value: 'short' }] })).items).toHaveLength(0);
   });
 
+  it('with a clock, advances the head with time so block timestamps track it', async () => {
+    let now = 1_800_000_000;
+    const network = new FakeArkivNetwork({ genesisTs: 1_700_000_000, clock: () => now });
+    const client = new FakeArkivClient(undefined, network);
+    const start = await client.currentBlock();
+    expect(network.timestampOf(start)).toBe(now);
+    now += 60;
+    expect(await client.currentBlock()).toBe(start + 30n);
+    const { key } = await client.createEntity({ attributes: { type: 'x' }, payload: null, ttlSeconds: 10 });
+    const created = (await client.getEntity(key))?.createdAtBlock ?? 0n;
+    expect(network.timestampOf(created)).toBe(now + 2);
+    now += 20;
+    expect(await client.getEntity(key)).toBeNull();
+  });
+
   it('extends expiry for the owner only, and only forwards', async () => {
     const { a, b } = setup();
     const { key, expiresAtBlock } = await a.createEntity({ attributes: { type: 'x' }, payload: null, ttlSeconds: DAY });

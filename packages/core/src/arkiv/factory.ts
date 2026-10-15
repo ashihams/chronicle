@@ -1,5 +1,5 @@
 import type { Config } from '../config.js';
-import { FakeArkivClient } from './fake.js';
+import { FakeArkivClient, FakeArkivNetwork } from './fake.js';
 import { LiveArkivClient } from './live.js';
 import type { ArkivClient } from './types.js';
 
@@ -11,7 +11,9 @@ export interface CreateArkivClientOptions {
 }
 
 export function createArkivClient(config: Config, opts: CreateArkivClientOptions = {}): ArkivClient {
-  if (config.arkiv.mode === 'fake') return opts.fake ?? new FakeArkivClient();
+  if (config.arkiv.mode === 'fake') {
+    return opts.fake ?? new FakeArkivClient(undefined, new FakeArkivNetwork({ clock: () => Date.now() / 1000 }));
+  }
   const privateKey = opts.privateKey === undefined ? config.watcher.privateKey : (opts.privateKey ?? undefined);
   return new LiveArkivClient({
     chainId: config.arkiv.chainId,
