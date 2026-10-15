@@ -1,6 +1,6 @@
 {
-  "probe_run": "pmv9v9e53+pmv9vith1+pmv9vjcbh",
-  "date": "2026-10-15T18:32:56.745Z",
+  "probe_run": "pmv9v9e53+pmv9vith1+pmv9vjcbh+pmv9x7h2d",
+  "date": "2026-10-15T19:17:48.341Z",
   "sdk_version": "0.8.1",
   "rpc": "https://rpc.tiramisu.db-chain.testnet.arkiv.network",
   "chain_id": 7738577,
@@ -8,7 +8,7 @@
   "wallet_b": "0x11d34e55bf7c8fc75fda5d073653d4b0768d817c",
   "arkiv_processor_address": "0x4400000000000000000000000000000000000044",
   "sync_strategy": "block",
-  "spent_wei": "16647684033295368",
+  "spent_wei": "16818738033637476",
   "experiments": {
     "e01_connectivity": {
       "ok": true,
@@ -16,17 +16,17 @@
       "details": {
         "chainId": 7738577,
         "chainIdMatches": true,
-        "balanceA": "9984723171969446344",
-        "balanceB": "0",
-        "currentBlock": "619632",
+        "balanceA": "9983352315966704632",
+        "balanceB": "10000000000000000000",
+        "currentBlock": "621035",
         "blockTiming": {
-          "currentBlock": "619632",
-          "currentBlockTime": 1792089030,
+          "currentBlock": "621036",
+          "currentBlockTime": 1792091838,
           "blockDuration": 2
         },
-        "entityCount": 8867
+        "entityCount": 8912
       },
-      "ms": 2495
+      "ms": 3520
     },
     "e02_create_read": {
       "ok": true,
@@ -450,25 +450,25 @@
             "type": "str",
             "value": "v2"
           },
-          "createdAt": "619695",
-          "updatedAt": "619698"
+          "createdAt": "621039",
+          "updatedAt": "621042"
         },
-        "walletBFunded": false,
+        "walletBFunded": true,
         "otherPatch": {
           "ok": false,
-          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+          "error": "EntityMutationError: Transaction failed: entity 0x6fd8cb63…28b686 is owned by 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE, not 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c"
         },
         "otherExtend": {
           "ok": false,
-          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+          "error": "EntityMutationError: Transaction failed: entity 0x6fd8cb63…28b686 is owned by 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE, not 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c"
         },
         "otherDelete": {
           "ok": false,
-          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+          "error": "EntityMutationError: Transaction failed: entity 0x6fd8cb63…28b686 is owned by 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE, not 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c"
         },
         "otherTransfer": {
           "ok": false,
-          "error": "EntityMutationError: Transaction failed: Execution error without revert data"
+          "error": "EntityMutationError: Transaction failed: entity 0x6fd8cb63…28b686 is owned by 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE, not 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c"
         },
         "unchangedAfterOtherAttempts": true,
         "ownerTransferToB": {
@@ -480,10 +480,21 @@
         },
         "formerOwnerPatch": {
           "ok": false,
-          "error": "EntityMutationError: Transaction failed: entity 0x37a94f0a…41d616 is owned by 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c, not 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE"
+          "error": "EntityMutationError: Transaction failed: entity 0x6fd8cb63…28b686 is owned by 0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c, not 0x34ccbad283B69A61bd8dD01b97fE6C27377524fE"
+        },
+        "newOwnerPatch": {
+          "ok": true
+        },
+        "afterNewOwnerPatch": {
+          "state": {
+            "type": "str",
+            "value": "v3-by-b"
+          },
+          "creator": "0x34ccbad283B69A61bd8dD01b97fE6C27377524fE",
+          "owner": "0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c"
         }
       },
-      "ms": 25158
+      "ms": 30337
     },
     "e09_delete": {
       "ok": true,
@@ -671,15 +682,6 @@
       "actual": "The create succeeds (gas is spent), but getEntity right after the receipt throws NoEntityFoundError",
       "impact": "None for Chronicle (we use 180 days); a trap for short-lived data",
       "fix": "Reject lifetimes that cannot outlive the inclusion block, or document the minimum useful lifetime"
-    },
-    {
-      "experiment": "e08_permissions",
-      "title": "Non-owner mutation from an unfunded wallet fails without a reason",
-      "tried": "patchEntity / extendEntity / deleteEntity / changeOwnership from a wallet with 0 balance on an entity it does not own",
-      "expected": "A NotOwner(entityKey, caller, owner) error, as the SDK reports for funded callers",
-      "actual": "EntityMutationError: \"EntityMutationError: Transaction failed: Execution error without revert data\"",
-      "impact": "Cannot tell \"not the owner\" apart from \"no gas\" when testing permissions",
-      "fix": "Decode the revert during simulation regardless of balance, or say that the caller has no funds"
     }
   ]
 }

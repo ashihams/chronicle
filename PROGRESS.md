@@ -64,7 +64,7 @@
 - Subscriptions work over both HTTP polling and WebSocket.
 - Permissions: only the owner can patch, extend, delete or transfer. After a transfer the creator stays the same and the former owner is rejected with a clear "owned by" error.
 - HUMAN:
-  - Fund wallet B (`0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c`) so that non-owner errors can be checked with a funded caller (unfunded callers get "Execution error without revert data").
+  - Done 16 Oct: wallet B (`0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c`) funded and `e08` rerun. A funded non-owner now gets a clear `owned by <owner>, not <caller>` error for patch, extend, delete and transfer. After a transfer the new owner can patch, and `$creator` stays the original writer. (An unfunded caller gets "Execution error without revert data".)
   - Open the explorer and confirm the link formats for transactions, entities and addresses; every path returns 200 because it is a single-page app.
 
 ### Stage 2
