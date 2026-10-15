@@ -5,7 +5,7 @@
 - [x] S0 repo, CI green (local `pnpm install && pnpm build && pnpm lint && pnpm test` pass; CI runs once a GitHub remote is added)
 - [x] S1 wrapper, fake client, probe results, friction entries
 - [x] S2 core domain, tests >= 85 percent
-- [ ] S3 demo site with admin mutations
+- [x] S3 demo site with admin mutations
 - [ ] S4 watcher, writes to fake and live Arkiv
 - [ ] S5 indexer, derived data, API, live attribute-query endpoints
 - [ ] S6 web UI + /api/match
@@ -81,6 +81,22 @@
   - Extraction: Zod is strict on types, `summary_en` and `severity`; invalid dates, slugs and negative amounts become null instead of failing the whole extraction. Dates before 1970 become null because timestamps are u64.
   - `changes` in the observation payload: a `text` change carries the previous and new normalized hashes, never text; amounts are rupee strings with two decimals; removals record `{ field: "removed", from: <previous state>, to: <state> }`.
 - Coverage of `packages/core`: 90.7 percent lines (267 tests). `src/arkiv/live.ts` is the only low file (34 percent) because it needs the live network; the probe exercises it.
+
+### Stage 3
+
+- `packages/demo-site`: Fastify 4 app (`buildDemoApp`) with in-memory state, run by `pnpm dev:demo` (`src/server.ts`, which reads the repo `.env` if present). Dependencies: `fastify`, `pdf-lib`, `zod` (all in the spec).
+- Every page and PDF says it is synthetic: a top banner and a labeled paragraph inside `<main>` (so the label also survives normalization), a footer line, a synthetic PDF title and banner, and an `x-demo-notice` response header.
+- Volatile fields on purpose: `Last updated` (IST clock time, written without periods so the normalizer's `last updated[^.\n]*` pattern covers it) and a visitor counter that increments on every request, both inside `<main>` and in the footer. Tests check that the HTML changes on every request while the normalized hash does not.
+- PDFs are rebuilt on each request but are byte-identical for the same state: CreationDate is the printed date (00:00 IST), ModDate is the last content change, and the producer is `Chronicle Demo`. The layout and date style (`30/10/2026`) differ from the HTML. Text is limited to WinAnsi characters because only the standard fonts are used.
+- Choices where the spec was open:
+  - `edit_text` replaces clause 1 (eligibility).
+  - `backdate` without a value moves the printed date back 45 days (more than `BACKDATE_DAYS = 7`).
+  - `restore` undoes removal, redirect, delisting and vantage hiding but keeps content edits (edit the fields back to demonstrate a revert). `POST /admin/reset` restores the seed state.
+  - Removal and redirect states apply to both the HTML and PDF URLs. A soft-removed PDF URL returns an HTML "no longer available" page with status 200, which core classifies as `soft_removed` (not a PDF).
+  - `delist` only hides the notice from the index. The index lists every notice that is not delisted, including removed ones (a broken link, as on real sites).
+  - Only content edits (deadline, amount, text, backdate) change `Last-Modified`.
+  - The admin token is compared in constant time; the panel never contains it. Non-JSON request bodies are ignored, so a bare `POST /admin/reset` works from any client.
+- Integration tests use Fastify `inject` and check each mutation with the real core normalizer and classifier (`changed`, `removed_404`, `removed_410`, `soft_removed`). The PDF text checks run against poppler.
 
 ## Cut list
 

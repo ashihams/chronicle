@@ -16,9 +16,13 @@
     "build": "tsc -b",
     "test": "vitest run",
     "lint": "eslint src test --ext .ts,.tsx --no-error-on-unmatched-pattern",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/server.ts",
+    "start": "node dist/server.js"
   },
   "dependencies": {
-    "@chronicle/core": "workspace:*"
+    "@chronicle/core": "workspace:*",
+    "fastify": "^4.28.1",
+    "pdf-lib": "^1.17.1",
+    "zod": "^3.23.8"
   }
 }
