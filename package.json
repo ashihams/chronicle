@@ -20,6 +20,7 @@
     "dev:fake": "pnpm --filter @chronicle/indexer dev:fake",
     "dev:web": "pnpm --filter @chronicle/web dev",
     "dev:bot": "pnpm --filter @chronicle/bot dev",
+    "seed:demo": "pnpm --filter @chronicle/indexer exec tsx scripts/seed-demo.ts",
     "probe": "tsx --env-file=.env scripts/arkiv-probe.ts"
   },
   "devDependencies": {

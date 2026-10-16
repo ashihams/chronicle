@@ -12,7 +12,7 @@
 - [ ] S6B Telegram bot baseline
 - [x] S7 evidence bundle + CLI verify
 - [x] S8 Docker, compose, community watcher instructions
-- [ ] S9 schema.md, friction.md, README, privacy tests, seed demo
+- [x] S9 schema.md, friction.md, README, privacy tests, seed demo
 - [ ] Two distinct funded wallets, two networks, observations on live Tiramisu
 - [ ] 10-20 real public pages watched since 14 Oct (HUMAN)
 - [ ] Deployment public and stable
@@ -176,6 +176,19 @@
   - app image size: _(pending local docker)_
   - compose cold start to UI on :8080: _(pending local docker)_
 
+### Stage 9
+
+- Filled `arkiv/schema.md` (overview, entities, time semantics, attribute query table, off-Arkiv data, expiry/probe limits, trust model, wallet list placeholders, recomputable derived data).
+- Consolidated `arkiv/friction.md` with Stage 1 probe entries plus development notes (fake chain per-process; tx hash workaround).
+- Full `README.md`: what/why, Appendix A Mermaid, fake quick start (3 commands), live setup, reproduce demo, community watcher (exact docker block), bundle verify, limitations, gates checklist, baseline, tracks, MIT.
+- Privacy test (`packages/indexer/test/privacy.test.ts`): fake watcher run, scan all doc/observation attrs+payloads for phones/emails/`chat` and demo body markers.
+- Match no-persistence test: `/api/match` leaves SQLite bytes unchanged; `normalizePdf` deletes `chronicle-*.pdf` temps.
+- `pnpm seed:demo` (`packages/indexer/scripts/seed-demo.ts`): two vantages, deadline edit → soft_remove → restore on fake chain.
+- Security pass notes: `.env` gitignored; API is GET-mostly + rate-limited `/api/*`; match body never logged/stored; git history secret scan should be re-run before submission (`gitleaks` if available). HUMAN: VPS deploy, second live wallet network, 10–20 real pages, confirm explorer links, LICENSE owner name.
+
 ## Cut list
 
-(none yet)
+- Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder).
+- Stretch S1–S6: not started (cut at freeze unless completed after S9).
+- Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
+

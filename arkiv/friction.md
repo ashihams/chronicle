@@ -119,3 +119,23 @@ Each entry follows this template:
 - Impact: None for Chronicle (we use 180 days); a trap for short-lived data
 - Suggested fix: Reject lifetimes that cannot outlive the inclusion block, or document the minimum useful lifetime
 <!-- probe:end -->
+
+## Found during application development (Stages 2–8)
+
+### FakeArkivClient chains are per-process
+- Date: 2026-10-16
+- What I tried: `ARKIV_MODE=fake` in docker-compose for `app` and `watcher-a` as separate containers, expecting a shared in-memory chain.
+- Expected: Watcher writes visible to the indexer API.
+- Actual: Each process gets its own `FakeArkivNetwork`. Entities never cross the container boundary.
+- Reproduce: 1. `docker compose up` with `ARKIV_MODE=fake`. 2. Watcher writes observations. 3. `GET /api/docs` on the app container stays empty.
+- Impact: Local multi-container demos need `ARKIV_MODE=live` with funded keys, or `pnpm dev:fake` (one process). Documented in README and compose comments.
+- Suggested fix: N/A (fake mode is intentionally local). Optional: a shared fake backend over a socket was out of scope.
+
+### getEntity has no creating transaction hash (workaround in production path)
+- Date: 2026-10-16
+- What I tried: Evidence bundle verify and explorer links for observation entities (Stage 7 CLI).
+- Expected: Tx hash on the entity record.
+- Actual: Same as Stage 1 SDK finding; LiveArkivClient fills `txHash` from `EntityCreated` logs in the creation block. FakeArkivNetwork keeps a `creationLog` that survives `__delete` so DELETED/EXPIRED verification still works.
+- Reproduce: Create then delete an entity; `createdEvents(from,to)` still lists the create; `getEntity` returns null.
+- Impact: Extra RPC per entity read; bundled in the wrapper so apps do not invent APIs.
+- Suggested fix: Same as the Stage 1 entry — return creating tx on `getEntity` / query rows.
