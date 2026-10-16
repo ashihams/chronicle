@@ -3,5 +3,7 @@ export * from './db.js';
 export * from './derive.js';
 export * from './http-util.js';
 export * from './indexer.js';
+export * from './match.js';
+export * from './match-lookup.js';
 export * from './schema.js';
 export * from './service.js';

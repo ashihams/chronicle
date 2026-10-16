@@ -547,6 +547,34 @@ export class IndexerDb {
     ).map(toVersion);
   }
 
+  /** Versions whose content hash equals `normSha256` (exact text / normalized-PDF match). */
+  versionsByNormSha256(normSha256: string): VersionRow[] {
+    return (
+      this.db
+        .prepare('SELECT * FROM versions WHERE norm_sha256 = ? ORDER BY doc_id, normalizer_version, seq')
+        .all(normSha256) as RawVersion[]
+    ).map(toVersion);
+  }
+
+  /**
+   * Observations that recorded this exact PDF byte hash, with the content hash used for the
+   * version chain (may be the text hash or the bytes hash when no text was extracted).
+   */
+  observationsByRawSha256(rawSha256: string): { docId: string; normSha256: string | null }[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT json_extract(attrs_json,'$.doc_id') AS doc_id,
+                  json_extract(attrs_json,'$.norm_sha256') AS norm_sha256
+           FROM entities
+           WHERE type = 'observation' AND json_extract(attrs_json,'$.raw_sha256') = ?`,
+        )
+        .all(rawSha256) as { doc_id: string | null; norm_sha256: string | null }[]
+    )
+      .filter((r): r is { doc_id: string; norm_sha256: string | null } => typeof r.doc_id === 'string')
+      .map((r) => ({ docId: r.doc_id, normSha256: r.norm_sha256 }));
+  }
+
   // ---- flags ------------------------------------------------------------------------------
 
   flagsForDoc(docId: string, openOnly = false): FlagRow[] {

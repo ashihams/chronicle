@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@chronicle/core": "workspace:*",
+    "@fastify/multipart": "^8.3.0",
     "better-sqlite3": "^13.0.3",
     "fastify": "^4.28.1",
     "pino": "^10.4.0",

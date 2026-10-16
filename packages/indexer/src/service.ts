@@ -87,11 +87,12 @@ export async function startIndexer(o: StartIndexerOptions): Promise<IndexerHandl
   if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
   const db = new IndexerDb(dbPath);
   const indexer = new Indexer(o.arkiv, db, s, o.log);
-  const app = buildApi({
+  const app = await buildApi({
     db,
     arkiv: o.arkiv,
     explorerBase: o.config.arkiv.explorerBase,
     log: o.log,
+    maxFileMb: o.config.bot.maxFileMb,
     ...(o.webDist !== undefined && { webDist: o.webDist }),
   });
 

@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ExecTool } from '@chronicle/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApi, changesWhere } from '../src/api.js';
@@ -22,7 +23,13 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((a) => a.close()));
 });
 
-async function setup(opts: { webDist?: string; rateLimit?: { max: number; windowMs: number } } = {}): Promise<Ctx> {
+async function setup(
+  opts: {
+    webDist?: string;
+    rateLimit?: { max: number; windowMs: number };
+    pdfExec?: ExecTool;
+  } = {},
+): Promise<Ctx> {
   const chain = new Chain();
   const db = new IndexerDb(':memory:');
   const keys: Record<string, string> = {};
@@ -42,7 +49,7 @@ async function setup(opts: { webDist?: string; rateLimit?: { max: number; window
   chain.advance(60);
   keys.other = await chain.observe(chain.b, { state: 'first_seen', hash: H(1), vantage: 'eu-b' });
   await new Indexer(chain.a, db, SETTINGS, silentLog).sync();
-  const app = buildApi({
+  const app = await buildApi({
     db,
     arkiv: chain.a,
     explorerBase: EXPLORER,
@@ -271,5 +278,74 @@ describe('REST API', () => {
     expect(res.body).toContain('<title>app</title>');
     res = await app.inject({ method: 'GET', url: '/' });
     expect(res.headers['content-type']).toContain('text/html');
+  });
+
+  it('matches pasted text and rejects an empty body', async () => {
+    const { app, db } = await setup();
+    const text = 'Synthetic circular for match testing.';
+    const { normalizeText, normHash } = await import('@chronicle/core');
+    const hash = normHash(normalizeText(text));
+    // rewrite version 1 to this hash so the JSON path hits
+    const versions = db.versionsForDoc(DOC_ID);
+    const v1 = versions[0];
+    if (v1 === undefined) throw new Error('missing version');
+    db.replaceVersions(
+      DOC_ID,
+      versions.map((v) => (v.seq === 1 ? { ...v, normSha256: hash } : v)),
+    );
+
+    const hit = await app.inject({
+      method: 'POST',
+      url: '/api/match',
+      headers: { 'content-type': 'application/json' },
+      payload: { text },
+    });
+    expect(hit.statusCode).toBe(200);
+    expect(hit.json()).toMatchObject({
+      result: 'exact_match',
+      match: { doc_id: DOC_ID, version_seq: 1, status: 'superseded' },
+    });
+    expect(String((hit.json() as { note: string }).note)).not.toMatch(/fraud|fake/i);
+
+    const miss = await app.inject({
+      method: 'POST',
+      url: '/api/match',
+      headers: { 'content-type': 'application/json' },
+      payload: { text: 'entirely different body' },
+    });
+    expect(miss.json()).toMatchObject({ result: 'no_match', match: null });
+
+    const empty = await app.inject({
+      method: 'POST',
+      url: '/api/match',
+      headers: { 'content-type': 'application/json' },
+      payload: { text: '' },
+    });
+    expect(empty.statusCode).toBe(400);
+  });
+
+  it('matches a PDF by raw bytes hash when text extraction finds nothing', async () => {
+    const { sha256Hex } = await import('@chronicle/core');
+    const pdfBytes = Buffer.from('%PDF-1.4\nsynthetic match fixture\n%%EOF\n');
+    const raw = sha256Hex(pdfBytes);
+    const { app, db } = await setup({
+      pdfExec: async () => '',
+    });
+    const versions = db.versionsForDoc(DOC_ID);
+    if (versions[0] === undefined) throw new Error('missing version');
+    db.replaceVersions(
+      DOC_ID,
+      versions.map((v) => (v.seq === 1 ? { ...v, normSha256: raw } : v)),
+    );
+
+    const form = new FormData();
+    form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }), 'notice.pdf');
+    const res = await app.inject({ method: 'POST', url: '/api/match', payload: form });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ result: 'exact_match', match: { version_seq: 1 } });
+
+    const notPdf = new FormData();
+    notPdf.append('file', new Blob([Buffer.from('not-a-pdf')], { type: 'application/pdf' }), 'x.pdf');
+    expect((await app.inject({ method: 'POST', url: '/api/match', payload: notPdf })).statusCode).toBe(400);
   });
 });
