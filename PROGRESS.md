@@ -16,8 +16,8 @@
 - [ ] Two distinct funded wallets, two networks, observations on live Tiramisu
 - [ ] 10-20 real public pages watched since 14 Oct (HUMAN)
 - [ ] Deployment public and stable
-- [ ] Demo video <= 3 minutes
-- [ ] Form submitted, SHA recorded
+- [ ] Demo video <= 3 minutes (Stage 10 HUMAN)
+- [ ] Form submitted, SHA recorded (Stage 10 HUMAN)
 - [ ] Stretch items attempted only after core, cut at 17 Oct 12:00 IST
 
 ## Stretch
@@ -186,9 +186,28 @@
 - `pnpm seed:demo` (`packages/indexer/scripts/seed-demo.ts`): two vantages, deadline edit → soft_remove → restore on fake chain.
 - Security pass notes: `.env` gitignored; API is GET-mostly + rate-limited `/api/*`; match body never logged/stored; git history secret scan should be re-run before submission (`gitleaks` if available). HUMAN: VPS deploy, second live wallet network, 10–20 real pages, confirm explorer links, LICENSE owner name.
 
+### Stage 10 (HUMAN — Cursor cannot submit)
+
+Stage 10 has **no application code**. Checklist for the owner (spec Appendix C + gates):
+
+1. **Deploy** (if not done): VPS India `app` + `watcher-a`; second network `watcher-b`; Caddy → `:8080`; keep up until **23 Oct**.
+2. **Docker S8 leftover:** repair Docker Desktop, `docker compose up --build`, record image sizes/startup in Stage 8 notes above.
+3. **Live multi-writer:** two funded wallets, two networks, at least the demo change sequence on Tiramisu; fill final addresses in `arkiv/schema.md`.
+4. **Watchlist:** enable 10–20 real public pages (robots/terms OK) from 14 Oct onward.
+5. **Rehearse:** full demo on the **deployed** URL end-to-end, **twice**.
+6. **Video ≤ 3 min** (Appendix C script): problem → publish → change (2 watchers) → verify timeline / live query → match → bundle/`chronicle verify` → why Arkiv + limits.
+7. **Submission form** (evening of **18 Oct IST**; hard margin 23:59 BST ≈ 04:29 IST 19 Oct — do not use it):
+   - Tracks: Best Indian Use Case + Censorship Resistance
+   - Repo, public deployment URL, wallet addresses, baseline SHA (`BASELINE.md`), video link
+8. **Record final commit SHA** at submit time. **No history rewrites** afterward.
+9. Confirm `LICENSE` owner name, explorer link formats, no secrets in git (`gitleaks` / `git log -p` scan).
+
+Cursor stack ends at Stage 9 (+ optional stretch). Merge stacked PRs `#5`…`#9` toward `main` when ready.
+
 ## Cut list
 
-- Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder).
-- Stretch S1–S6: not started (cut at freeze unless completed after S9).
+- Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder). Cut from demo unless finished before freeze.
+- Stretch S1–S6: not started. Cut at freeze (17 Oct 12:00 IST) unless completed after S9.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
+- Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 
