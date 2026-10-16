@@ -1,4 +1,5 @@
 export * from './api.js';
+export * from './bundle-build.js';
 export * from './db.js';
 export * from './derive.js';
 export * from './http-util.js';

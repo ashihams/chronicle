@@ -49,6 +49,8 @@ export class FakeArkivNetwork {
   private block: bigint;
   private seq = 0;
   readonly entities = new Map<string, StoredEntity>();
+  /** Survives `__delete` / expiry, like `EntityCreated` logs on a real chain. */
+  readonly creationLog: CreatedEvent[] = [];
   private readonly listeners = new Set<(e: ArkivEntityRecord) => void>();
   readonly balances = new Map<string, bigint>();
 
@@ -236,6 +238,14 @@ export class FakeArkivClient implements ArkivClient {
       seq,
     };
     this.network.entities.set(e.key, e);
+    this.network.creationLog.push({
+      key: e.key,
+      owner: e.creator,
+      block: e.createdAtBlock,
+      txHash: e.txHash,
+      logIndex: e.logIndex,
+      expiresAtBlock: e.expiresAtBlock,
+    });
     this.network.emit(this.network.toRecord(e, true));
     return { key: e.key, txHash: e.txHash, expiresAtBlock: e.expiresAtBlock };
   }
@@ -280,17 +290,9 @@ export class FakeArkivClient implements ArkivClient {
   }
 
   async createdEvents(fromBlock: bigint, toBlock: bigint): Promise<CreatedEvent[]> {
-    return [...this.network.entities.values()]
-      .filter((e) => e.createdAtBlock >= fromBlock && e.createdAtBlock <= toBlock)
-      .sort((a, b) => a.seq - b.seq)
-      .map((e) => ({
-        key: e.key,
-        owner: e.creator,
-        block: e.createdAtBlock,
-        txHash: e.txHash,
-        logIndex: e.logIndex,
-        expiresAtBlock: e.expiresAtBlock,
-      }));
+    return this.network.creationLog
+      .filter((e) => e.block >= fromBlock && e.block <= toBlock)
+      .sort((a, b) => (a.block === b.block ? a.logIndex - b.logIndex : Number(a.block - b.block)));
   }
 
   async subscribe(onEntity: (e: ArkivEntityRecord) => void): Promise<() => void> {
