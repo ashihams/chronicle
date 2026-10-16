@@ -17,7 +17,10 @@ import { startHealthServer, type HealthServer } from './health.js';
 import { Scheduler } from './scheduler.js';
 import { serializeWrites } from './serial.js';
 import { Watcher, type CheckOutcome } from './watcher.js';
+import { assertProductionWatchlist } from './production.js';
 import { enabledSources, loadWatchlist } from './watchlist.js';
+
+export { ProductionWatchlistError } from './production.js';
 
 export const FAUCET_NOTE =
   'Fund the wallet from the Tiramisu testnet faucet (linked from hub.arkiv.network and docs.arkiv.network), then restart.';
@@ -73,6 +76,7 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
     ...(opts.fetch && { fetch: opts.fetch }),
   });
   const sources = enabledSources(watchlist, w.pollHoursDefault);
+  assertProductionWatchlist(sources);
 
   const arkiv = serializeWrites(opts.arkiv ?? createArkivClient(config));
   const address = arkiv.address();

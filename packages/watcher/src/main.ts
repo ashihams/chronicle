@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { ConfigError, loadConfig } from '@chronicle/core';
 import { pino } from 'pino';
-import { WalletError, startWatcher } from './run.js';
+import { ProductionWatchlistError, WalletError, startWatcher } from './run.js';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 try {
@@ -36,7 +36,7 @@ try {
     process.once('SIGTERM', () => shutdown('SIGTERM'));
   }
 } catch (err) {
-  if (err instanceof ConfigError || err instanceof WalletError) {
+  if (err instanceof ConfigError || err instanceof WalletError || err instanceof ProductionWatchlistError) {
     log.error(err.message);
   } else {
     log.error({ err: err instanceof Error ? err.message : String(err) }, 'watcher failed to start');

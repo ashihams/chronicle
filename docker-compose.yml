@@ -1,0 +1,90 @@
+# Local stack: demo site, indexer+web, and watcher-a.
+#   docker compose up --build
+# UI: http://localhost:8080   demo: http://localhost:4000
+#
+# Fake mode is per-process (watcher and indexer do not share an in-memory chain).
+# For a shared chain use ARKIV_MODE=live with funded keys in .env, or `pnpm dev:fake` on the host.
+
+services:
+  demo-site:
+    build:
+      context: .
+      dockerfile: packages/demo-site/Dockerfile
+    ports:
+      - '4000:4000'
+    environment:
+      DEMO_PORT: '4000'
+      DEMO_ADMIN_TOKEN: ${DEMO_ADMIN_TOKEN:-change-me}
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - '8080:8080'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: '8080'
+      INDEXER_DB_PATH: /data/indexer.db
+      ARKIV_MODE: ${ARKIV_MODE:-fake}
+      ARKIV_CHAIN_ID: ${ARKIV_CHAIN_ID:-7738577}
+      ARKIV_RPC_HTTP: ${ARKIV_RPC_HTTP:-https://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      ARKIV_RPC_WS: ${ARKIV_RPC_WS:-wss://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      EXPLORER_BASE: ${EXPLORER_BASE:-https://tiramisu.explorer.arkiv.network}
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-20}
+      LIVENESS_INTERVAL_MINUTES: ${LIVENESS_INTERVAL_MINUTES:-30}
+    volumes:
+      - ./data:/data
+    depends_on:
+      - demo-site
+
+  watcher-a:
+    build:
+      context: .
+      dockerfile: packages/watcher/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      ALLOW_DEMO: ${ALLOW_DEMO:-1}
+      VANTAGE: in-vps
+      WATCHLIST_PATH: /app/watchlist.json
+      DATA_DIR: /data/watcher-a
+      WATCHER_HEALTH_PORT: '8081'
+      ARKIV_MODE: ${ARKIV_MODE:-fake}
+      ARKIV_CHAIN_ID: ${ARKIV_CHAIN_ID:-7738577}
+      ARKIV_RPC_HTTP: ${ARKIV_RPC_HTTP:-https://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      ARKIV_RPC_WS: ${ARKIV_RPC_WS:-wss://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      REQUEST_DELAY_MS_PER_HOST: ${REQUEST_DELAY_MS_PER_HOST:-1000}
+      WATCHER_PRIVATE_KEY: ${WATCHER_PRIVATE_KEY:-}
+    volumes:
+      - ./data:/data
+      # compose uses demo-site hostname; repo-root watchlist.json keeps localhost for host runs
+      - ./deploy/watchlist.docker.json:/app/watchlist.json:ro
+    ports:
+      - '8081:8081'
+    depends_on:
+      - demo-site
+
+  bot:
+    profiles: ['bot']
+    image: chronicle-app
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      API_BASE_URL: http://app:8080
+      BOT_DB_PATH: /data/bot.db
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    volumes:
+      - ./data:/data
+    depends_on:
+      - app
+    # Stage 6B supplies the real entrypoint; until then this profile is a placeholder.
+    command: ['node', '-e', "console.error('bot image ready; Stage 6B entrypoint not wired yet'); process.exit(1)"]
