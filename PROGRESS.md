@@ -25,7 +25,7 @@
 - [x] S1 contradictions
 - [x] S2 stealth-removal
 - [x] S3 PDF signature checks
-- [ ] S4 follow-and-alert
+- [x] S4 follow-and-alert
 - [ ] S5 verifier extras
 - [ ] S6 Tamil/Hindi
 
@@ -213,7 +213,7 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 
 ## Cut list
 
-- Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder). Cut from demo unless finished before freeze.
+- Stage 6B Telegram bot baseline (match/PDF verifier): not wired. Stretch S4 follow-and-alert is on `stretch-s4`. Cut 6B from demo unless finished before freeze.
 ### Stretch S2 (stealth-removal)
 
 - Watcher: archive `indexes[]` → `index_snapshot` entities (`index_id`, `index_mode`, `observed_at`, `link_count`, `links_sha256`; payload link list). Rolling indexes skipped. Written when link set hash changes.
@@ -225,7 +225,13 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 - Indexer: `sig_invalid` (severity 3) for `signed_invalid` / `signed_modified`; soft `metadata_inconsistent` (severity 1) for known online editors or CreationDate > printed_date + 30 days.
 - UI: "Signature intact" / neutral unsigned copy; never "authentic". Flag explanations avoid fraud/fake.
 
-- Stretch S4–S6: not started. Cut at freeze unless completed.
+### Stretch S4 (Telegram follow-and-alert)
+
+- `packages/bot`: grammy long polling; `/follow <type> <value>` (or bare 64-hex doc_id), `/unfollow`, `/list`; subscriptions + `alert_log` in `bot.db` only.
+- Dispatcher polls `GET /api/docs?changed_since=` every 60s; UNCONFIRMED (severity ≥ 2, one watcher) then CONFIRMED (2+ creators on same `norm_sha256`); dedupe `(chat, doc, hash, stage)`; max 5 alerts/chat/hour. Never logs chat IDs.
+- Stage 6B verifier path still not wired (match/PDF); compose bot entrypoint now runs `node packages/bot/dist/main.js`.
+
+- Stretch S5–S6: not started. Cut at freeze unless completed.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 
