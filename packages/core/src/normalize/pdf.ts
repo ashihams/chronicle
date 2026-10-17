@@ -4,6 +4,7 @@ import { rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sha256Hex } from '../hash.js';
+import { parsePdfSig, type PdfSignatureInfo } from '../pdf-sig.js';
 import { normalizeText } from './text.js';
 
 export const PDF_TOOL_TIMEOUT_MS = 30_000;
@@ -23,6 +24,8 @@ export interface NormalizedPdf {
   /** sha256 of the normalized text, or of the raw bytes when no text could be extracted. */
   normSha256: string;
   meta: PdfMeta;
+  /** Stretch S3: from `pdfsig` (unsigned when the tool is missing or finds no signature). */
+  signature: PdfSignatureInfo;
 }
 
 /** Runs a poppler binary and resolves with stdout. Injectable so tests can stub poppler. */
@@ -41,16 +44,38 @@ export const execTool: ExecTool = (cmd, args, timeoutMs) =>
       cmd,
       args,
       { timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, encoding: 'utf8', windowsHide: true },
-      (err, stdout) => {
+      (err, stdout, stderr) => {
         if (err) {
           if ((err as NodeJS.ErrnoException).code === 'ENOENT') reject(new PopplerMissingError(cmd));
           else reject(err);
           return;
         }
         resolve(stdout);
+        void stderr;
       },
     );
   });
+
+/**
+ * Like `execTool`, but resolves with stdout/stderr even when the process exits non-zero
+ * (`pdfsig` often does that for unsigned or invalid files). Still throws if the binary is missing.
+ */
+export async function execToolCapture(cmd: string, args: string[], timeoutMs: number, exec: ExecTool = execTool): Promise<string> {
+  try {
+    return await exec(cmd, args, timeoutMs);
+  } catch (err) {
+    if (err instanceof PopplerMissingError) throw err;
+    if (err !== null && typeof err === 'object') {
+      const e = err as { stdout?: unknown; stderr?: unknown; message?: unknown };
+      const out = [typeof e.stdout === 'string' ? e.stdout : '', typeof e.stderr === 'string' ? e.stderr : '']
+        .join('\n')
+        .trim();
+      if (out !== '') return out;
+      if (typeof e.message === 'string' && e.message.trim() !== '') return e.message;
+    }
+    throw err;
+  }
+}
 
 export function hasPdfHeader(bytes: Uint8Array): boolean {
   const head = Buffer.from(bytes.subarray(0, 1024)).toString('latin1');
@@ -112,8 +137,19 @@ export async function normalizePdf(bytes: Uint8Array, opts: NormalizePdfOptions 
     } catch (err) {
       if (err instanceof PopplerMissingError) throw err;
     }
+    let signature: PdfSignatureInfo = { status: 'unsigned', signerOrg: null };
+    try {
+      const sigOut = await execToolCapture('pdfsig', [file], PDF_TOOL_TIMEOUT_MS, exec);
+      signature = parsePdfSig(sigOut);
+    } catch (err) {
+      if (err instanceof PopplerMissingError) {
+        // pdfsig not installed: leave unsigned rather than failing PDF normalization
+      } else {
+        signature = { status: 'unsigned', signerOrg: null };
+      }
+    }
     const textExtracted = text.length >= MIN_PDF_TEXT_CHARS;
-    return { text, textExtracted, normSha256: textExtracted ? sha256Hex(text) : rawSha, meta };
+    return { text, textExtracted, normSha256: textExtracted ? sha256Hex(text) : rawSha, meta, signature };
   } finally {
     await rm(file, { force: true });
   }

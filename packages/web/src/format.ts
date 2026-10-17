@@ -69,7 +69,30 @@ export function flagExplanation(kind: string): string {
       return "An on-chain entity's payload or attributes no longer match what was first mirrored.";
     case 'missing':
       return 'A mirrored entity is gone from Arkiv before its recorded expiry.';
+    case 'sig_invalid':
+      return 'The PDF digital signature did not validate, or the document appears modified after signing. This is not a judgment that the notice is fake.';
+    case 'metadata_inconsistent':
+      return 'PDF metadata looks inconsistent (for example an online editor producer, or CreationDate far after the printed date). Soft signal only.';
     default:
       return 'A derived condition on this document. Inspect the timeline for details.';
+  }
+}
+
+/**
+ * Stretch S3 UI copy for `sig_status`. Never says "authentic".
+ * Unsigned is neutral — many genuine circulars have no digital signature.
+ */
+export function signatureWording(status: string | null | undefined): string | null {
+  switch (status) {
+    case 'signed_valid':
+      return 'Signature intact';
+    case 'signed_modified':
+      return 'Signature invalid: document appears modified after signing';
+    case 'signed_invalid':
+      return 'Signature invalid';
+    case 'unsigned':
+      return 'No digital signature. Many genuine circulars are unsigned.';
+    default:
+      return null;
   }
 }

@@ -160,6 +160,36 @@ function flagView(f: FlagRow): Record<string, unknown> {
   };
 }
 
+/** Latest observation that carries PDF provenance attrs (stretch S3). */
+function latestPdfProvenance(obs: EntityRow[]): {
+  sig_status: string | null;
+  sig_signer_org: string | null;
+  pdf_producer: string | null;
+  pdf_created_ts: number | null;
+} | null {
+  let best: EntityRow | null = null;
+  for (const e of obs) {
+    if (e.status !== 'live' && e.status !== 'expired') continue;
+    if (e.attrs.sig_status === undefined && e.attrs.pdf_producer === undefined && e.attrs.pdf_created_ts === undefined) {
+      continue;
+    }
+    if (
+      best === null ||
+      e.createdBlock > best.createdBlock ||
+      (e.createdBlock === best.createdBlock && e.key > best.key)
+    ) {
+      best = e;
+    }
+  }
+  if (best === null) return null;
+  return {
+    sig_status: typeof best.attrs.sig_status === 'string' ? best.attrs.sig_status : null,
+    sig_signer_org: typeof best.attrs.sig_signer_org === 'string' ? best.attrs.sig_signer_org : null,
+    pdf_producer: typeof best.attrs.pdf_producer === 'string' ? best.attrs.pdf_producer : null,
+    pdf_created_ts: typeof best.attrs.pdf_created_ts === 'number' ? best.attrs.pdf_created_ts : null,
+  };
+}
+
 function mirrorView(e: EntityRow): Record<string, unknown> {
   return {
     key: e.key,
@@ -266,6 +296,10 @@ export function buildTimeline(
       summary_en: payload.summary_en,
       changes: payload.changes,
       severity: e.attrs.severity ?? null,
+      sig_status: e.attrs.sig_status ?? null,
+      sig_signer_org: e.attrs.sig_signer_org ?? null,
+      pdf_producer: e.attrs.pdf_producer ?? null,
+      pdf_created_ts: e.attrs.pdf_created_ts ?? null,
       entity_status: e.status,
       explorer_url: links.entity(e.key),
       tx_url: e.txHash === null ? null : links.tx(e.txHash),
@@ -460,6 +494,7 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
       flags: o.db.flagsForDoc(docId).map(flagView),
       observers: observersOf(obs).map((w) => ({ ...w, explorer_url: links.address(w.creator) })),
       observation_count: obs.length,
+      provenance: latestPdfProvenance(obs),
     };
   });
 

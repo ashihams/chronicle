@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchDoc, fetchTimeline, type TimelineEvent } from '../api';
 import { CopyButton } from '../components/CopyButton';
 import { Empty, ErrorBox, Loading } from '../components/Status';
-import { flagExplanation, formatWhen, shortHex, stateBadge } from '../format';
+import { flagExplanation, formatWhen, shortHex, signatureWording, stateBadge } from '../format';
 
 export function DocPage(): React.ReactElement {
   const { docId = '' } = useParams();
@@ -34,6 +34,7 @@ export function DocPage(): React.ReactElement {
       ? (contradiction.details as { notice_badge: string }).notice_badge
       : null;
   const verifyCmd = `chronicle verify --doc ${docId}`;
+  const sigLine = signatureWording(d.provenance?.sig_status ?? null);
 
   return (
     <div className="space-y-10">
@@ -50,6 +51,11 @@ export function DocPage(): React.ReactElement {
             {contradictionBadge ? (
               <span className="badge-disputed" title={contradictionBadge}>
                 {contradictionBadge}
+              </span>
+            ) : null}
+            {sigLine ? (
+              <span className="badge-muted" title={d.provenance?.sig_signer_org ?? undefined}>
+                {sigLine}
               </span>
             ) : null}
             {d.doc.source_url ? (

@@ -90,10 +90,39 @@ describe('normalizePdf with a stubbed poppler', () => {
     expect(calls).toEqual([
       ['pdftotext', '-enc', 'UTF-8', '-'],
       ['pdfinfo', '-isodates', '-enc', 'UTF-8'],
+      ['pdfsig'],
     ]);
     expect(r.textExtracted).toBe(true);
     expect(r.meta.producer).toBe('Stub');
     expect(r.meta.creationTs).toBe(Date.UTC(2026, 0, 1, 21, 34, 5) / 1000);
+    expect(r.signature).toEqual({ status: 'unsigned', signerOrg: null });
+  });
+
+  it('parses pdfsig output into signature extras', async () => {
+    const exec: ExecTool = async (cmd) => {
+      if (cmd === 'pdftotext') return 'Stub   TEXT '.repeat(10);
+      if (cmd === 'pdfinfo') return 'Producer: Stub\n';
+      if (cmd === 'pdfsig') {
+        return [
+          'Signature #1',
+          '  - Signer Certificate Distinguished Name: O=Demo Org, C=IN',
+          '  - Signature Validation: Signature is Valid.',
+        ].join('\n');
+      }
+      return '';
+    };
+    const r = await normalizePdf(bytes, { exec });
+    expect(r.signature).toEqual({ status: 'signed_valid', signerOrg: 'Demo Org' });
+  });
+
+  it('leaves unsigned when pdfsig is missing', async () => {
+    const exec: ExecTool = async (cmd) => {
+      if (cmd === 'pdfsig') throw new PopplerMissingError(cmd);
+      if (cmd === 'pdftotext') return 'Stub   TEXT '.repeat(10);
+      return 'Producer: Stub\n';
+    };
+    const r = await normalizePdf(bytes, { exec });
+    expect(r.signature.status).toBe('unsigned');
   });
 
   it('rethrows a missing poppler binary', async () => {

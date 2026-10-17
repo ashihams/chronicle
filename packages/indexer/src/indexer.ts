@@ -12,6 +12,7 @@ import {
   ObservationPayloadSchema,
   rejectReason,
 } from './schema.js';
+import { PDF_PROVENANCE_FLAG_KINDS, pdfProvenanceFlags } from './pdf-provenance.js';
 import { STEALTH_FLAG_KINDS, stealthFlagsFromSnapshots, type IndexSnapshotView } from './stealth.js';
 
 /** Observations are re-queried from this far before the newest `observed_at` already synced. */
@@ -247,12 +248,14 @@ export class Indexer {
       backdateSeconds: this.settings.backdateDays * 86400,
       clockSkewSeconds: this.settings.clockSkewSeconds,
     });
+    const provenance = pdfProvenanceFlags(obs);
     this.db.transaction(() => {
       this.db.replaceVersions(
         docId,
         derived.versions.map((v) => ({ ...v, docId })),
       );
       this.db.reconcileFlags(docId, DERIVED_FLAG_KINDS, derived.flags, nowTs);
+      this.db.reconcileFlags(docId, PDF_PROVENANCE_FLAG_KINDS, provenance, nowTs);
       this.db.setDocStatus(docId, derived.status);
     });
   }

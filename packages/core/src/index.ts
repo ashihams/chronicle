@@ -11,5 +11,7 @@ export * from './llm.js';
 export * from './observation.js';
 export * from './index-links.js';
 export * from './index-snapshot.js';
+export * from './pdf-sig.js';
 export * from './bundle.js';
 export * from './arkiv/index.js';
+

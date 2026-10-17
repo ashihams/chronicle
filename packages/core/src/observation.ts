@@ -3,6 +3,7 @@ import { MAX_STRING_BYTES, MAX_USER_ATTRIBUTES, utf8Length, validateAttrs } from
 import { MAX_SUMMARY_CHARS } from './extract.js';
 import { NORMALIZER_VERSION } from './hash.js';
 import { MAX_TITLE_CHARS } from './normalize/html.js';
+import { SIG_STATUSES } from './pdf-sig.js';
 import {
   NO_CONTENT_STATES,
   OBSERVATION_STATES,
@@ -253,7 +254,10 @@ export function buildObservationAttrs(input: ObservationInput): Attrs {
     attrs.simhash_hex = x.simhashHex;
   }
   if (x.sigStatus) {
-    checkSlug('sig_status', x.sigStatus);
+    check(
+      (SIG_STATUSES as readonly string[]).includes(x.sigStatus),
+      `sig_status "${x.sigStatus}" must be one of ${SIG_STATUSES.join('|')}`,
+    );
     attrs.sig_status = x.sigStatus;
   }
   const signer = x.sigSignerOrg?.replace(/\s+/g, ' ').trim();

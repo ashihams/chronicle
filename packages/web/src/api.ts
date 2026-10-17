@@ -99,6 +99,12 @@ export interface DocDetail {
     explorer_url: string;
   }[];
   observation_count: number;
+  provenance: {
+    sig_status: string | null;
+    sig_signer_org: string | null;
+    pdf_producer: string | null;
+    pdf_created_ts: number | null;
+  } | null;
 }
 
 export interface TimelineEvent {
