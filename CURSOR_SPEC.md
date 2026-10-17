@@ -134,6 +134,7 @@ FETCH_TIMEOUT_MS=20000
 USER_AGENT=ChronicleWatcher/1.0 (+https://github.com/OWNER/chronicle; contact: EMAIL)
 OBSERVATION_TTL_DAYS=180
 RENEW_WHEN_DAYS_LEFT=30
+WATCHER_HEALTH_PORT=8081             # GET /health (section 4.2 step 13)
 
 # LLM
 GROQ_API_KEY=

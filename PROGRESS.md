@@ -6,7 +6,7 @@
 - [x] S1 wrapper, fake client, probe results, friction entries
 - [x] S2 core domain, tests >= 85 percent
 - [x] S3 demo site with admin mutations
-- [ ] S4 watcher, writes to fake and live Arkiv
+- [x] S4 watcher, writes to fake and live Arkiv
 - [ ] S5 indexer, derived data, API, live attribute-query endpoints
 - [ ] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
@@ -64,7 +64,7 @@
 - Subscriptions work over both HTTP polling and WebSocket.
 - Permissions: only the owner can patch, extend, delete or transfer. After a transfer the creator stays the same and the former owner is rejected with a clear "owned by" error.
 - HUMAN:
-  - Fund wallet B (`0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c`) so that non-owner errors can be checked with a funded caller (unfunded callers get "Execution error without revert data").
+  - Done 16 Oct: wallet B (`0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c`) funded and `e08` rerun. A funded non-owner now gets a clear `owned by <owner>, not <caller>` error for patch, extend, delete and transfer. After a transfer the new owner can patch, and `$creator` stays the original writer. (An unfunded caller gets "Execution error without revert data".)
   - Open the explorer and confirm the link formats for transactions, entities and addresses; every path returns 200 because it is a single-page app.
 
 ### Stage 2
@@ -97,6 +97,32 @@
   - Only content edits (deadline, amount, text, backdate) change `Last-Modified`.
   - The admin token is compared in constant time; the panel never contains it. Non-JSON request bodies are ignored, so a bare `POST /admin/reset` works from any client.
 - Integration tests use Fastify `inject` and check each mutation with the real core normalizer and classifier (`changed`, `removed_404`, `removed_410`, `soft_removed`). The PDF text checks run against poppler.
+
+### Stage 4
+
+- `packages/watcher`: `pnpm --filter watcher start -- --once` runs one pass and exits (non-zero if any check errored); without `--once` it schedules every source and serves `GET /health` on `WATCHER_HEALTH_PORT` (8081, added to the env list in the spec and `.env.example`). Dependencies `better-sqlite3`, `robots-parser`, `pino` and `zod` are in the spec; `@types/better-sqlite3` is a dev dependency for its typings, and `@chronicle/demo-site` is a dev dependency for the integration test.
+- `watchlist.json` (repo root) has the three synthetic demo notices (page and PDF each, `poll_hours: 1`) and 12 disabled placeholders with `"url": "TODO"` for real pages. The zod schema rejects `TODO` or non-http URLs on enabled items, duplicate notice ids, the same URL twice, and unknown `index_id`s. The demo index links now carry `class="notice-link"` to match `link_selector`.
+- Relative `WATCHLIST_PATH` and `DATA_DIR` are resolved against the repo root, so `pnpm --filter watcher ...` (which runs inside `packages/watcher`) uses `./watchlist.json` and `./data` at the root. The local DB is `DATA_DIR/watcher.db`: the section 6 `sources` table plus `last_text_extracted` (the classifier needs it to spot a PDF that lost its text layer) and a `meta` table for the last renewal time.
+- Core changes (bug fixes needed by the acceptance flow):
+  - Classification: a redirect from a notice to a parent path of it (for example `/circulars/001` to `/circulars/`, which is what the demo and many real sites do) is `redirected`. A redirect to a child path such as an annexure is not.
+  - `heuristicExtract` (`rules-v1`): deadline, printed date, amount and "supersedes" found with simple patterns. It is used when `GROQ_API_KEY` is not set, when the text is empty (scanned PDF), or when the LLM fails twice, so the acceptance flow (`deadline_ts` updated, severity at least 2) works without an LLM key.
+- Choices where the spec was open:
+  - Severity is the rule severity (deadline or amount change = 2, removal = 3), raised by the LLM's severity only for `changed`. On `first_seen` the LLM severity is ignored, so a new notice is never "severity 3".
+  - A `present` observation is written right away when the last written state was a removal or `unreachable` (the notice came back), not only after `HEARTBEAT_HOURS`.
+  - The "no identical consecutive removal within `HEARTBEAT_HOURS`" rule also applies to `unreachable`.
+  - `present` heartbeats repeat the last extracted fields (`deadline_ts`, `amount_paise`, ...) because they describe the same content hash. Removal and `unreachable` observations carry no content fields or hashes.
+  - Summaries without an LLM are built from the state and extracted fields only (for example "Deadline changed from 2026-10-30 to 2026-11-20."), never from document text.
+  - Backoff (1, 5, 30 minutes) applies to a check that threw (for example an Arkiv write failure or missing poppler) and to the first failure that the failure rule holds back, so `unreachable` is confirmed quickly. A failed write leaves local state untouched, so the next check retries the same observation.
+  - robots.txt: 2xx is parsed, 4xx allows everything, 5xx or a network error blocks the host for an hour. Concurrent checks on one host share a single robots.txt fetch. Redirects are followed manually with one overall `FETCH_TIMEOUT_MS`.
+  - Doc registration takes any writer's existing `doc` for the `doc_id` (earliest block wins), as the spec says the indexer deduplicates; renewal only extends entities this wallet owns.
+  - `ARKIV_MODE=fake` keeps entities in the process's memory, so across separate `--once` runs only the local DB persists. That is enough for the acceptance flow: later runs reuse the cached doc key and compare against the stored hash.
+- Verified on 16 Oct with the CLI against the running demo site in fake mode: the first run wrote 6 docs and 6 `first_seen`; the second wrote nothing; `edit_deadline` gave `changed` with severity 2 (page and PDF); `remove_404` gave `removed_404`, `soft_remove` gave `soft_removed`, `redirect` gave `redirected`; a repeat run wrote nothing.
+- Writes go through `serializeWrites`, so one wallet sends one transaction at a time (concurrent sends from one account can race on the nonce); reads stay concurrent.
+- Live Tiramisu run on 16 Oct (owner's request), wallet A `0x34ccbad283b69a61bd8dd01b97fe6c27377524fe`, vantage `in-vps`, demo site on localhost, default 5 s per-host delay:
+  - A first pass hit a stale demo server left over from the fake-mode check, so it registered the 6 docs and wrote `removed_404` (001), `soft_removed` (002) and `redirected` (003) for page and PDF. Those entities are accurate records of what that server returned.
+  - With a fresh demo server: 6 `first_seen` (57 s), then a repeat pass with no writes, then `edit_deadline` on 001 gave `changed` with severity 2 for page and PDF. Reading `0xa26253a4…` back from the chain shows `deadline_date` 2026-11-20, the rule summary "Deadline changed from 2026-10-30 to 2026-11-20." and one `doc` for the `doc_id`.
+  - 20 writes cost about 0.003 testnet GLM.
+- HUMAN: pick the real pages for the watchlist (check robots.txt and terms, fill the URLs, set `enabled: true`).
 
 ## Cut list
 

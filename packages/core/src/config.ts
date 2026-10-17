@@ -38,6 +38,7 @@ const EnvSchema = z.object({
   USER_AGENT: str('ChronicleWatcher/1.0 (+https://github.com/OWNER/chronicle; contact: EMAIL)'),
   OBSERVATION_TTL_DAYS: int(180, 1),
   RENEW_WHEN_DAYS_LEFT: int(30, 0),
+  WATCHER_HEALTH_PORT: int(8081, 1),
 
   GROQ_API_KEY: optStr(),
   GROQ_MODEL: str('openai/gpt-oss-120b'),
@@ -82,6 +83,7 @@ export interface Config {
     userAgent: string;
     observationTtlDays: number;
     renewWhenDaysLeft: number;
+    healthPort: number;
   };
   llm: {
     groqApiKey: string | undefined;
@@ -156,6 +158,7 @@ export function loadConfig(
       userAgent: e.USER_AGENT,
       observationTtlDays: e.OBSERVATION_TTL_DAYS,
       renewWhenDaysLeft: e.RENEW_WHEN_DAYS_LEFT,
+      healthPort: e.WATCHER_HEALTH_PORT,
     },
     llm: {
       groqApiKey: e.GROQ_API_KEY,

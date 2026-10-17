@@ -74,7 +74,18 @@ function isRedirectAway(sourceUrl: string, finalUrl: string): boolean {
     if (err instanceof InvalidUrlError) return false;
     throw err;
   }
-  return src.host !== fin.host || fin.pathname === '/' || ERROR_PATH_RE.test(fin.pathname);
+  return (
+    src.host !== fin.host ||
+    fin.pathname === '/' ||
+    ERROR_PATH_RE.test(fin.pathname) ||
+    isParentPath(fin.pathname, src.pathname)
+  );
+}
+
+/** `/circulars/` is a parent of `/circulars/001`: a notice redirected to its listing is gone. */
+function isParentPath(parent: string, child: string): boolean {
+  const p = parent.replace(/\/+$/, '');
+  return p !== '' && child.startsWith(`${p}/`) && child.length > p.length + 1;
 }
 
 function softRemovedReason(input: ClassifyInput, content: ClassifyContent): string | null {

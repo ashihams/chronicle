@@ -6,6 +6,7 @@ export * from './normalize/index.js';
 export * from './classify.js';
 export * from './diff.js';
 export * from './extract.js';
+export * from './heuristic.js';
 export * from './llm.js';
 export * from './observation.js';
 export * from './arkiv/index.js';
