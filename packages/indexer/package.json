@@ -18,7 +18,8 @@
     "lint": "eslint src test scripts --ext .ts,.tsx --no-error-on-unmatched-pattern",
     "dev": "tsx src/main.ts",
     "start": "node dist/main.js",
-    "dev:fake": "tsx scripts/dev-fake.ts"
+    "dev:fake": "tsx scripts/dev-fake.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@chronicle/core": "workspace:*",
