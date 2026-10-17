@@ -1,6 +1,7 @@
 import { sha256Of, type ArkivClient, type ArkivEntityRecord, type Attrs, type Where } from '@chronicle/core';
 import type { Logger } from 'pino';
 import type { EntityRow, IndexerDb } from './db.js';
+import { CONTRADICTION_FLAG_KINDS, pagePdfContradiction, type SourceSnapshot } from './contradiction.js';
 import { DERIVED_FLAG_KINDS, deriveDoc, type ObsInput } from './derive.js';
 import {
   DocAttrsSchema,
@@ -256,7 +257,63 @@ export class Indexer {
   recomputeAll(nowTs: number): number {
     const ids = this.db.allDocIds();
     for (const id of ids) this.recompute(id, nowTs);
+    this.recomputeContradictions(nowTs);
     return ids.length;
+  }
+
+  /**
+   * Stretch S1: for each notice_id with both page and PDF docs, flag when latest
+   * deadline_ts / amount_paise disagree. Flags are mirrored onto both docs.
+   */
+  recomputeContradictions(nowTs: number): void {
+    for (const [, docs] of this.db.docsByNoticeId()) {
+      const pageDoc = docs.find((d) => d.sourceKind === 'page');
+      const pdfDoc = docs.find((d) => d.sourceKind === 'pdf');
+      const page = pageDoc !== undefined ? this.latestSourceSnapshot(pageDoc.docId, 'page') : null;
+      const pdf = pdfDoc !== undefined ? this.latestSourceSnapshot(pdfDoc.docId, 'pdf') : null;
+      const flag = page !== null && pdf !== null ? pagePdfContradiction(page, pdf) : null;
+      const desired = flag === null ? [] : [flag];
+      for (const d of docs) {
+        if (d.sourceKind === 'page' || d.sourceKind === 'pdf') {
+          this.db.reconcileFlags(d.docId, CONTRADICTION_FLAG_KINDS, desired, nowTs);
+        }
+      }
+    }
+  }
+
+  private latestSourceSnapshot(docId: string, sourceKind: 'page' | 'pdf'): SourceSnapshot | null {
+    const CONTENT = new Set(['first_seen', 'present', 'changed']);
+    let best: ObsInput | null = null;
+    for (const e of this.db.observationsForDoc(docId)) {
+      if (e.status !== 'live' && e.status !== 'expired') continue;
+      const attrs = attrsOf(ObservationAttrsSchema, e.attrs);
+      if (attrs === null || !CONTENT.has(attrs.state) || attrs.norm_sha256 === undefined) continue;
+      const o: ObsInput = {
+        key: e.key,
+        creator: e.creator,
+        createdBlock: e.createdBlock,
+        createdTs: e.createdTs,
+        status: e.status,
+        attrs,
+        summaryEn: null,
+      };
+      if (
+        best === null ||
+        o.createdBlock > best.createdBlock ||
+        (o.createdBlock === best.createdBlock && o.key > best.key)
+      ) {
+        best = o;
+      }
+    }
+    if (best === null) return null;
+    return {
+      docId,
+      sourceKind,
+      key: best.key,
+      deadlineTs: best.attrs.deadline_ts ?? null,
+      deadlineDate: best.attrs.deadline_date ?? null,
+      amountPaise: best.attrs.amount_paise ?? null,
+    };
   }
 
   /** Section 5.2: re-reads every live entity and records expiry, deletion, modification and transfers. */

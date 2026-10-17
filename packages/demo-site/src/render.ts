@@ -167,6 +167,13 @@ label{display:block;margin:8px 0}button{margin:4px}pre{background:#f4f4f4;paddin
 <label>Admin token <input id="token" type="password" autocomplete="off"></label>
 <label>Notice <select id="id">${options}</select></label>
 <label>Value <input id="value" size="50" placeholder="see button tooltip"></label>
+<label>edit_deadline target
+  <select id="target">
+    <option value="both">both</option>
+    <option value="page">page only</option>
+    <option value="pdf">pdf only</option>
+  </select>
+</label>
 <div>${buttons}</div>
 <p><button id="state">Show state</button> <button id="reset">Reset all</button></p>
 <pre id="out"></pre>
@@ -183,7 +190,10 @@ async function call(method, path, body) {
 document.querySelectorAll('button[data-action]').forEach((b) =>
   b.addEventListener('click', () => {
     const value = $('value').value.trim();
-    call('POST', '/admin/mutate', { id: $('id').value, action: b.dataset.action, ...(value ? { value } : {}) });
+    const action = b.dataset.action;
+    const body = { id: $('id').value, action, ...(value ? { value } : {}) };
+    if (action === 'edit_deadline') body.target = $('target').value;
+    call('POST', '/admin/mutate', body);
   }),
 );
 $('state').addEventListener('click', () => call('GET', '/admin/state'));

@@ -25,7 +25,14 @@ export async function copyText(value: string): Promise<boolean> {
   }
 }
 
-export function stateBadge(state: string | null, disputed: boolean): { label: string; className: string } {
+export function stateBadge(
+  state: string | null,
+  disputed: boolean,
+  contradiction = false,
+): { label: string; className: string } {
+  if (contradiction) {
+    return { label: 'Sources disagree', className: 'badge-disputed' };
+  }
   if (disputed) {
     return { label: 'Disputed', className: 'badge-disputed' };
   }
@@ -44,6 +51,8 @@ export function flagExplanation(kind: string): string {
   switch (kind) {
     case 'vantage_disagreement':
       return 'Sources disagree: two watchers recently reported different content (or one reported a removal) for the same notice.';
+    case 'contradiction':
+      return 'Sources disagree: page and PDF currently report different deadlines or amounts for the same notice.';
     case 'backdated':
       return 'A later version carries a printed date or Last-Modified far earlier than when watchers first saw that version.';
     case 'clock_skew':

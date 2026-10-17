@@ -76,7 +76,7 @@ export async function renderNoticePdf(n: Notice): Promise<Uint8Array> {
   write(`Subject: ${n.title} (${n.scheme})`, bold, 11, 10);
   n.clauses.forEach((c, i) => write(`${i + 1}. ${c}`, regular, 11, 6));
   write(
-    `${n.clauses.length + 1}. The last date for receipt of applications is ${formatDateDmy(n.deadline)}.`,
+    `${n.clauses.length + 1}. The last date for receipt of applications is ${formatDateDmy(n.deadlinePdf)}.`,
     regular,
     11,
     6,
