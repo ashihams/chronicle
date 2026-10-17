@@ -16,5 +16,7 @@ describe('format helpers', () => {
     expect(flagExplanation('vantage_disagreement')).not.toMatch(/fraud|fake/i);
     expect(flagExplanation('contradiction')).toMatch(/page and PDF/i);
     expect(flagExplanation('contradiction')).not.toMatch(/fraud|fake/i);
+    expect(flagExplanation('stealth_removed')).toMatch(/without a withdrawal notice/i);
+    expect(flagExplanation('stealth_removed')).not.toMatch(/fraud|fake/i);
   });
 });

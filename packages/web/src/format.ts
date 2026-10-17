@@ -53,6 +53,12 @@ export function flagExplanation(kind: string): string {
       return 'Sources disagree: two watchers recently reported different content (or one reported a removal) for the same notice.';
     case 'contradiction':
       return 'Sources disagree: page and PDF currently report different deadlines or amounts for the same notice.';
+    case 'delisted':
+      return 'Still reachable at its URL, but no longer listed on the watched index page.';
+    case 'stealth_removed':
+      return 'Removed from listing without a withdrawal notice.';
+    case 'declared_withdrawn':
+      return 'The index gained a withdrawal-style notice when this link disappeared.';
     case 'backdated':
       return 'A later version carries a printed date or Last-Modified far earlier than when watchers first saw that version.';
     case 'clock_skew':

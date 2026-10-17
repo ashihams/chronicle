@@ -408,6 +408,18 @@ export class IndexerDb {
     ).map(toEntity);
   }
 
+  /** Live or expired entities of a given type (chain order). */
+  entitiesOfType(type: string): EntityRow[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT * FROM entities WHERE type = ? AND status IN ('live','expired')
+           ORDER BY created_block, key`,
+        )
+        .all(type) as RawEntity[]
+    ).map(toEntity);
+  }
+
   docEntities(docId: string): EntityRow[] {
     return (
       this.db

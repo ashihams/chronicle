@@ -3,6 +3,7 @@ export * from './extractor.js';
 export * from './fetcher.js';
 export * from './fields.js';
 export * from './health.js';
+export * from './index-snapshot.js';
 export * from './policy.js';
 export * from './production.js';
 export * from './renew.js';

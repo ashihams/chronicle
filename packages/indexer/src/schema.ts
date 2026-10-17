@@ -81,6 +81,34 @@ export const DocPayloadSchema = z
   .catch({ title: null, registered_vantage: null, source_url: null });
 export type DocPayloadView = z.infer<typeof DocPayloadSchema>;
 
+/** Stretch S2. */
+export const IndexSnapshotAttrsSchema = z
+  .object({
+    type: z.literal('index_snapshot'),
+    schema_v: z.literal(1),
+    index_id: str,
+    index_mode: str,
+    observed_at: ts,
+    link_count: z.number().int().nonnegative(),
+    links_sha256: hex64,
+  })
+  .passthrough();
+export type IndexSnapshotAttrs = z.infer<typeof IndexSnapshotAttrsSchema>;
+
+export const IndexSnapshotPayloadSchema = z
+  .object({
+    links: z
+      .array(
+        z.object({
+          doc_id: hex64,
+          title: z.string().max(120),
+        }),
+      )
+      .default([]),
+  })
+  .catch({ links: [] });
+export type IndexSnapshotPayloadView = z.infer<typeof IndexSnapshotPayloadSchema>;
+
 export const MIRRORED_TYPES = ['doc', 'observation', 'index_snapshot'] as const;
 export type MirroredType = (typeof MIRRORED_TYPES)[number];
 
@@ -89,7 +117,7 @@ export function rejectReason(attrs: Attrs): string | null {
   const type = attrs.type;
   if (type === 'observation') return issues(ObservationAttrsSchema.safeParse(attrs));
   if (type === 'doc') return issues(DocAttrsSchema.safeParse(attrs));
-  if (type === 'index_snapshot') return attrs.schema_v === 1 ? null : 'schema_v must be 1';
+  if (type === 'index_snapshot') return issues(IndexSnapshotAttrsSchema.safeParse(attrs));
   return `unsupported type ${String(type)}`;
 }
 
