@@ -52,12 +52,29 @@ export class FakeArkivNetwork {
   private readonly listeners = new Set<(e: ArkivEntityRecord) => void>();
   readonly balances = new Map<string, bigint>();
 
-  constructor(readonly opts: { startBlock?: bigint; genesisTs?: number; blockTimeSeconds?: number } = {}) {
+  /**
+   * With `clock` (unix seconds), the head also advances with time, one block per block time, so
+   * block timestamps track the clock as on a real chain. Without it, blocks only advance on writes.
+   */
+  constructor(
+    readonly opts: { startBlock?: bigint; genesisTs?: number; blockTimeSeconds?: number; clock?: () => number } = {},
+  ) {
     this.block = opts.startBlock ?? 1000n;
+    this.catchUp();
   }
 
   get head(): bigint {
+    this.catchUp();
     return this.block;
+  }
+
+  private catchUp(): void {
+    if (this.opts.clock === undefined) return;
+    const genesis = this.opts.genesisTs ?? 1_760_000_000;
+    const target = BigInt(
+      Math.max(0, Math.floor((this.opts.clock() - genesis) / (this.opts.blockTimeSeconds ?? BLOCK_TIME_SECONDS))),
+    );
+    if (target > this.block) this.block = target;
   }
 
   advanceBlocks(n: number | bigint): bigint {
@@ -77,6 +94,7 @@ export class FakeArkivNetwork {
 
   /** Every write lands in a fresh block, like a sequential writer on a real chain. */
   mine(): bigint {
+    this.catchUp();
     this.block += 1n;
     return this.block;
   }
@@ -86,7 +104,7 @@ export class FakeArkivNetwork {
   }
 
   isLive(e: StoredEntity): boolean {
-    return e.expiresAtBlock > this.block;
+    return e.expiresAtBlock > this.head;
   }
 
   emit(record: ArkivEntityRecord): void {
@@ -134,7 +152,7 @@ export class FakeArkivNetwork {
   }
 
   __expireNow(key: string): void {
-    this.mustGet(key).expiresAtBlock = this.block;
+    this.mustGet(key).expiresAtBlock = this.head;
   }
 
   private mustGet(key: string): StoredEntity {
