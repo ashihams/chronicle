@@ -7,6 +7,7 @@ import { formatDay } from '../format';
 export function VerifyPage(): React.ReactElement {
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [lang, setLang] = useState<'en' | 'ta' | 'hi'>('en');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [result, setResult] = useState<MatchResponse | null>(null);
@@ -23,8 +24,9 @@ export function VerifyPage(): React.ReactElement {
                 (() => {
                   throw new Error('Choose a PDF first');
                 })(),
+              lang,
             )
-          : await matchText(text);
+          : await matchText(text, lang);
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -51,6 +53,14 @@ export function VerifyPage(): React.ReactElement {
       </header>
 
       <section className="panel space-y-5 p-5 sm:p-6">
+        <label className="block">
+          <span className="label">Reply language</span>
+          <select className="field" value={lang} onChange={(e) => setLang(e.target.value as 'en' | 'ta' | 'hi')}>
+            <option value="en">English</option>
+            <option value="ta">Tamil</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </label>
         <label className="block">
           <span className="label">Paste text</span>
           <textarea
@@ -105,13 +115,21 @@ export function VerifyPage(): React.ReactElement {
 function ResultCard({ result }: { result: MatchResponse }): React.ReactElement {
   const match = result.match;
   const ok = result.result === 'exact_match';
+  const similar = result.result === 'similar_match';
+  const badge = ok ? 'Exact match' : similar ? 'Similar, not identical' : 'No match';
   return (
-    <section className={`panel p-5 sm:p-6 ${ok ? 'border-btc/40 shadow-glow' : 'border-white/15'}`} aria-live="polite">
+    <section
+      className={`panel p-5 sm:p-6 ${ok ? 'border-btc/40 shadow-glow' : similar ? 'border-btc-gold/40' : 'border-white/15'}`}
+      aria-live="polite"
+    >
       <p className="flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-widest text-stardust">
         {ok ? <span className="live-dot" aria-hidden /> : null}
-        <span>{ok ? 'Exact match' : 'No match'}</span>
+        <span>{badge}</span>
       </p>
       <p className="mt-3 font-heading text-xl text-white">{result.note}</p>
+      {result.forgery_reports.note ? (
+        <p className="mt-2 text-sm text-stardust">{result.forgery_reports.note}</p>
+      ) : null}
       {match ? (
         <div className="mt-5 space-y-2 text-sm text-stardust">
           <p>
@@ -127,6 +145,7 @@ function ResultCard({ result }: { result: MatchResponse }): React.ReactElement {
               ? ` (superseded ${formatDay(match.superseded_at)})`
               : ' (current)'}
             {match.current_seq !== null ? ` · current is v${match.current_seq}` : null}
+            {match.hamming_distance !== undefined ? ` · Hamming ${match.hamming_distance}` : null}
           </p>
           {match.changes_since.length > 0 ? (
             <ul className="list-disc space-y-1 pl-5">

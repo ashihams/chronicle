@@ -132,6 +132,7 @@ export class Indexer {
       ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'doc' }])),
       ...(await this.queryAll(obsWhere)),
       ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'index_snapshot' }])),
+      ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'forgery_report' }])),
     ];
 
     let added = 0;

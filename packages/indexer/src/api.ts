@@ -21,6 +21,7 @@ import { buildEvidenceBundle } from './bundle-build.js';
 import type { DocRow, EntityRow, FlagRow, IndexerDb, VersionRow } from './db.js';
 import { STATE_KEYS } from './indexer.js';
 import { explorerLinks, RateLimiter, resolveStatic } from './http-util.js';
+import { parseReplyLang } from './match-i18n.js';
 import { lookupMatch } from './match-lookup.js';
 import { ObservationAttrsSchema, ObservationPayloadSchema, rejectReason } from './schema.js';
 
@@ -579,7 +580,13 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
     return liveQuery(reply, [{ attr: 'type', op: 'eq', value: 'observation' }], q, { creator: address });
   });
 
-  const matchTextBody = z.object({ text: z.string().min(1, 'text must not be empty').max(2_000_000) }).strict();
+  const matchTextBody = z
+    .object({
+      text: z.string().min(1, 'text must not be empty').max(2_000_000),
+      lang: z.enum(['en', 'ta', 'hi']).optional(),
+    })
+    .strict();
+  const matchLangQuery = z.object({ lang: z.enum(['en', 'ta', 'hi']).optional() }).strict();
 
   app.get('/api/bundle/:docId', async (req, reply) => {
     const { docId } = parse(docIdParam, req.params);
@@ -600,10 +607,13 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
    * hashes it, and looks up mirrored versions. The body is never logged or stored in SQLite.
    */
   app.post('/api/match', async (req) => {
+    const qLang = matchLangQuery.safeParse(req.query);
+    const langFromQuery = qLang.success ? qLang.data.lang : undefined;
     const ctype = req.headers['content-type'] ?? '';
     if (ctype.includes('multipart/form-data')) {
       let file: { buffer: Buffer; filename: string; mimetype: string } | null = null;
       let textField: string | undefined;
+      let langField: string | undefined;
       try {
         for await (const part of req.parts()) {
           if (part.type === 'file') {
@@ -612,6 +622,8 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
             file = { buffer, filename: part.filename, mimetype: part.mimetype };
           } else if (part.fieldname === 'text' && typeof part.value === 'string') {
             textField = part.value;
+          } else if (part.fieldname === 'lang' && typeof part.value === 'string') {
+            langField = part.value;
           }
         }
       } catch (err) {
@@ -622,24 +634,39 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
         }
         throw new ApiError(400, 'bad_request', 'Could not read multipart body');
       }
+      const lang = parseReplyLang(langField ?? langFromQuery);
       if (file !== null) {
-        return matchPdf(file.buffer, o);
+        return matchPdf(file.buffer, o, lang);
       }
       if (textField !== undefined) {
         const { text } = parse(matchTextBody, { text: textField });
-        return lookupMatch(o.db, { normSha256: normHash(normalizeText(text)) });
+        const normalized = normalizeText(text);
+        return lookupMatch(o.db, {
+          normSha256: normHash(normalized),
+          normalizedText: normalized,
+          lang,
+        });
       }
       throw new ApiError(400, 'bad_request', 'multipart body must include file or text');
     }
 
     const body = parse(matchTextBody, req.body);
-    return lookupMatch(o.db, { normSha256: normHash(normalizeText(body.text)) });
+    const normalized = normalizeText(body.text);
+    return lookupMatch(o.db, {
+      normSha256: normHash(normalized),
+      normalizedText: normalized,
+      lang: parseReplyLang(body.lang ?? langFromQuery),
+    });
   });
 
   return app;
 }
 
-async function matchPdf(bytes: Buffer, o: ApiOptions): Promise<ReturnType<typeof lookupMatch>> {
+async function matchPdf(
+  bytes: Buffer,
+  o: ApiOptions,
+  lang: ReturnType<typeof parseReplyLang> = 'en',
+): Promise<ReturnType<typeof lookupMatch>> {
   if (bytes.byteLength === 0) throw new ApiError(400, 'bad_request', 'Empty file');
   if (bytes.byteLength > Math.max(1, o.maxFileMb ?? 10) * 1024 * 1024) {
     throw new ApiError(413, 'payload_too_large', `PDF must be at most ${o.maxFileMb ?? 10} MB`);
@@ -649,7 +676,12 @@ async function matchPdf(bytes: Buffer, o: ApiOptions): Promise<ReturnType<typeof
   const rawSha256 = sha256Hex(u8);
   try {
     const pdf = await normalizePdf(u8, o.pdfExec !== undefined ? { exec: o.pdfExec } : {});
-    return lookupMatch(o.db, { normSha256: pdf.normSha256, rawSha256 });
+    return lookupMatch(o.db, {
+      normSha256: pdf.normSha256,
+      rawSha256,
+      normalizedText: pdf.textExtracted ? pdf.text : undefined,
+      lang,
+    });
   } catch (err) {
     if (err instanceof PopplerMissingError) {
       throw new ApiError(503, 'poppler_missing', 'PDF tools are not installed on this server');

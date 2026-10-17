@@ -602,6 +602,50 @@ export class IndexerDb {
       .map((r) => ({ docId: r.doc_id, normSha256: r.norm_sha256 }));
   }
 
+  /** Stretch S5: observations that carry a 16-hex `simhash_hex` and a content hash. */
+  observationsWithSimhash(): { normSha256: string; simhashHex: string }[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT json_extract(attrs_json,'$.norm_sha256') AS norm_sha256,
+                  json_extract(attrs_json,'$.simhash_hex') AS simhash_hex
+           FROM entities
+           WHERE type = 'observation'
+             AND json_extract(attrs_json,'$.simhash_hex') IS NOT NULL
+             AND json_extract(attrs_json,'$.norm_sha256') IS NOT NULL`,
+        )
+        .all() as { norm_sha256: string | null; simhash_hex: string | null }[]
+    )
+      .filter(
+        (r): r is { norm_sha256: string; simhash_hex: string } =>
+          typeof r.norm_sha256 === 'string' &&
+          typeof r.simhash_hex === 'string' &&
+          /^[0-9a-f]{16}$/.test(r.simhash_hex) &&
+          /^[0-9a-f]{64}$/.test(r.norm_sha256),
+      )
+      .map((r) => ({ normSha256: r.norm_sha256, simhashHex: r.simhash_hex }));
+  }
+
+  /** Stretch S5: distinct `$creator` count and reason codes for a content hash. */
+  forgeryReportStats(normSha256: string): { distinctCreators: number; reasonCodes: string[] } {
+    const rows = this.db
+      .prepare(
+        `SELECT creator, json_extract(attrs_json,'$.reason_code') AS reason_code
+         FROM entities
+         WHERE type = 'forgery_report'
+           AND status IN ('live','expired')
+           AND json_extract(attrs_json,'$.norm_sha256') = ?`,
+      )
+      .all(normSha256) as { creator: string; reason_code: string | null }[];
+    const creators = new Set<string>();
+    const codes = new Set<string>();
+    for (const r of rows) {
+      creators.add(r.creator);
+      if (typeof r.reason_code === 'string' && r.reason_code.length > 0) codes.add(r.reason_code);
+    }
+    return { distinctCreators: creators.size, reasonCodes: [...codes].sort() };
+  }
+
   // ---- flags ------------------------------------------------------------------------------
 
   flagsForDoc(docId: string, openOnly = false): FlagRow[] {
