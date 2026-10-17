@@ -17,8 +17,9 @@ import { startHealthServer, type HealthServer } from './health.js';
 import { Scheduler } from './scheduler.js';
 import { serializeWrites } from './serial.js';
 import { Watcher, type CheckOutcome } from './watcher.js';
+import { IndexSnapshotter } from './index-snapshot.js';
 import { assertProductionWatchlist } from './production.js';
-import { enabledSources, loadWatchlist } from './watchlist.js';
+import { archiveIndexes, enabledSources, loadWatchlist } from './watchlist.js';
 
 export { ProductionWatchlistError } from './production.js';
 
@@ -76,6 +77,7 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
     ...(opts.fetch && { fetch: opts.fetch }),
   });
   const sources = enabledSources(watchlist, w.pollHoursDefault);
+  const indexes = archiveIndexes(watchlist);
   assertProductionWatchlist(sources);
 
   const arkiv = serializeWrites(opts.arkiv ?? createArkivClient(config));
@@ -83,7 +85,14 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
   if (address === null) throw new WalletError('No wallet: set WATCHER_PRIVATE_KEY in the environment.');
   const balance = await arkiv.balance();
   log.info(
-    { address, balanceWei: balance.toString(), vantage: w.vantage, mode: config.arkiv.mode, sources: sources.length },
+    {
+      address,
+      balanceWei: balance.toString(),
+      vantage: w.vantage,
+      mode: config.arkiv.mode,
+      sources: sources.length,
+      archiveIndexes: indexes.length,
+    },
     'watcher starting',
   );
   if (balance === 0n) throw new WalletError(`Wallet ${address} has a zero balance. ${FAUCET_NOTE}`);
@@ -117,10 +126,25 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
     ...(opts.fetch && { fetch: opts.fetch }),
     ...(opts.pdfExec && { pdfExec: opts.pdfExec }),
   });
+  const snapper = new IndexSnapshotter({
+    settings: w,
+    arkiv,
+    db,
+    log: log.child({ part: 'index-snapshot' }),
+    now,
+    ...(opts.fetch && { fetch: opts.fetch }),
+  });
+
+  const runIndexes = async (): Promise<void> => {
+    for (const ix of indexes) {
+      await snapper.safeCheck(ix);
+    }
+  };
 
   if (opts.once) {
     try {
       const outcomes = await Promise.all(sources.map((s) => watcher.safeCheck(s)));
+      await runIndexes();
       await watcher.renewIfDue();
       return { outcomes, health: null, stop: async () => undefined };
     } finally {
@@ -129,6 +153,8 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
   }
 
   let lastPassTs: number | null = null;
+  let lastIndexPassTs = 0;
+  const indexIntervalSec = Math.max(3600, Math.floor(w.pollHoursDefault * 3600));
   const scheduler = new Scheduler({
     sources,
     check: (s) => watcher.safeCheck(s),
@@ -137,6 +163,10 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
     },
     onIdle: async () => {
       await watcher.renewIfDue();
+      if (indexes.length > 0 && now() - lastIndexPassTs >= indexIntervalSec) {
+        lastIndexPassTs = now();
+        await runIndexes();
+      }
     },
   });
   const health = await startHealthServer({
@@ -149,7 +179,11 @@ export async function startWatcher(opts: StartOptions): Promise<WatcherHandle> {
     }),
   });
   log.info({ port: health.port }, 'health server listening');
-  void scheduler.start().then(() => log.info('first pass done'));
+  void scheduler.start().then(async () => {
+    await runIndexes();
+    lastIndexPassTs = now();
+    log.info('first pass done');
+  });
 
   return {
     outcomes: [],

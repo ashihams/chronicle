@@ -23,7 +23,7 @@
 ## Stretch
 
 - [x] S1 contradictions
-- [ ] S2 stealth-removal
+- [x] S2 stealth-removal
 - [ ] S3 PDF signature checks
 - [ ] S4 follow-and-alert
 - [ ] S5 verifier extras
@@ -214,7 +214,12 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 ## Cut list
 
 - Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder). Cut from demo unless finished before freeze.
-- Stretch S2–S6: not started. Cut at freeze unless completed.
+### Stretch S2 (stealth-removal)
+
+- Watcher: archive `indexes[]` → `index_snapshot` entities (`index_id`, `index_mode`, `observed_at`, `link_count`, `links_sha256`; payload link list). Rolling indexes skipped. Written when link set hash changes.
+- Indexer: diff consecutive snapshots per creator; vanished docs → `delisted` (still 200), `stealth_removed` (404/410, no withdrawal title on index), or `declared_withdrawn` (withdrawal-style title appeared). Corroboration (2+ creators) raises severity. UI wording: "removed from listing without a withdrawal notice".
+
+- Stretch S3–S6: not started. Cut at freeze unless completed.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 

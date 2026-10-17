@@ -6,10 +6,13 @@ import { DERIVED_FLAG_KINDS, deriveDoc, type ObsInput } from './derive.js';
 import {
   DocAttrsSchema,
   DocPayloadSchema,
+  IndexSnapshotAttrsSchema,
+  IndexSnapshotPayloadSchema,
   ObservationAttrsSchema,
   ObservationPayloadSchema,
   rejectReason,
 } from './schema.js';
+import { STEALTH_FLAG_KINDS, stealthFlagsFromSnapshots, type IndexSnapshotView } from './stealth.js';
 
 /** Observations are re-queried from this far before the newest `observed_at` already synced. */
 export const OBSERVED_AT_OVERLAP_SECONDS = 86400;
@@ -258,7 +261,61 @@ export class Indexer {
     const ids = this.db.allDocIds();
     for (const id of ids) this.recompute(id, nowTs);
     this.recomputeContradictions(nowTs);
+    this.recomputeStealthRemovals(nowTs);
     return ids.length;
+  }
+
+  /**
+   * Stretch S2: diff consecutive `index_snapshot` entities per creator; flag vanished
+   * docs as delisted / stealth_removed / declared_withdrawn.
+   */
+  recomputeStealthRemovals(nowTs: number): void {
+    const views: IndexSnapshotView[] = [];
+    for (const e of this.db.entitiesOfType('index_snapshot')) {
+      const attrs = attrsOf(IndexSnapshotAttrsSchema, e.attrs);
+      if (attrs === null) continue;
+      const payload = IndexSnapshotPayloadSchema.parse(e.payload ?? {});
+      views.push({
+        key: e.key,
+        creator: e.creator,
+        indexId: attrs.index_id,
+        createdBlock: e.createdBlock,
+        links: payload.links.map((l) => ({ docId: l.doc_id, title: l.title })),
+      });
+    }
+    const desiredByDoc = stealthFlagsFromSnapshots(views, (docId) => this.latestObsHint(docId));
+    const allDocIds = new Set([...this.db.allDocIds(), ...desiredByDoc.keys()]);
+    for (const docId of allDocIds) {
+      const desired = desiredByDoc.get(docId);
+      this.db.reconcileFlags(docId, STEALTH_FLAG_KINDS, desired === undefined ? [] : [desired], nowTs);
+    }
+  }
+
+  private latestObsHint(docId: string): { state: string | null; httpStatus: number | null; title: string | null } {
+    let best: EntityRow | null = null;
+    for (const e of this.db.observationsForDoc(docId)) {
+      if (e.status !== 'live' && e.status !== 'expired') continue;
+      if (
+        best === null ||
+        e.createdBlock > best.createdBlock ||
+        (e.createdBlock === best.createdBlock && e.key > best.key)
+      ) {
+        best = e;
+      }
+    }
+    if (best === null) return { state: null, httpStatus: null, title: null };
+    const attrs = attrsOf(ObservationAttrsSchema, best.attrs);
+    const title =
+      best.payload !== null && typeof best.payload === 'object' && 'title' in best.payload
+        ? typeof (best.payload as { title: unknown }).title === 'string'
+          ? (best.payload as { title: string }).title
+          : null
+        : null;
+    return {
+      state: attrs?.state ?? null,
+      httpStatus: attrs?.http_status ?? null,
+      title,
+    };
   }
 
   /**
