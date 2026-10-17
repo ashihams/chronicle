@@ -86,5 +86,5 @@ services:
       - ./data:/data
     depends_on:
       - app
-    # Stage 6B supplies the real entrypoint; until then this profile is a placeholder.
-    command: ['node', '-e', "console.error('bot image ready; Stage 6B entrypoint not wired yet'); process.exit(1)"]
+    # Stretch S4 follow-and-alert (Stage 6B verifier path still optional).
+    command: ['node', 'packages/bot/dist/main.js']

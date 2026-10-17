@@ -2,7 +2,7 @@
   "name": "@chronicle/bot",
   "version": "0.1.0",
   "private": true,
-  "description": "Telegram verifier bot",
+  "description": "Telegram verifier bot and stretch S4 follow-and-alert",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,9 +16,17 @@
     "build": "tsc -b",
     "test": "vitest run",
     "lint": "eslint src test --ext .ts,.tsx --no-error-on-unmatched-pattern",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/main.ts",
+    "start": "node dist/main.js"
   },
   "dependencies": {
-    "@chronicle/core": "workspace:*"
+    "@chronicle/core": "workspace:*",
+    "better-sqlite3": "^13.0.3",
+    "grammy": "^1.38.3",
+    "pino": "^10.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0"
   }
 }
