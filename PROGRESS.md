@@ -22,7 +22,7 @@
 
 ## Stretch
 
-- [ ] S1 contradictions
+- [x] S1 contradictions
 - [ ] S2 stealth-removal
 - [ ] S3 PDF signature checks
 - [ ] S4 follow-and-alert
@@ -202,12 +202,19 @@ Stage 10 has **no application code**. Checklist for the owner (spec Appendix C +
 8. **Record final commit SHA** at submit time. **No history rewrites** afterward.
 9. Confirm `LICENSE` owner name, explorer link formats, no secrets in git (`gitleaks` / `git log -p` scan).
 
-Cursor stack ends at Stage 9 (+ optional stretch). Merge stacked PRs `#5`…`#9` toward `main` when ready.
+Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct). Stretch continues on `stretch-s1`.
+
+### Stretch S1 (contradictions)
+
+- Demo `edit_deadline` accepts `target`: `page` | `pdf` | `both` (admin UI select). Notices keep `deadline` (HTML) and `deadlinePdf` (PDF).
+- Indexer `recomputeContradictions` after each `recomputeAll`: for each `notice_id` with page+PDF docs, compare latest content `deadline_ts` / `amount_paise`; open `contradiction` (severity 2) on both docs with both entity keys and badge text `sources disagree: page says X, PDF says Y`.
+- UI: Home/Doc badge "Sources disagree"; flag copy never says fraud/fake.
+- Verified with unit tests (`contradiction`, `contradiction-indexer`, `deadline-target`, format badges).
 
 ## Cut list
 
 - Stage 6B Telegram bot baseline: not wired (compose `bot` profile is a placeholder). Cut from demo unless finished before freeze.
-- Stretch S1–S6: not started. Cut at freeze (17 Oct 12:00 IST) unless completed after S9.
+- Stretch S2–S6: not started. Cut at freeze unless completed.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 

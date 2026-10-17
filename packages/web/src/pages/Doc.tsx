@@ -22,8 +22,17 @@ export function DocPage(): React.ReactElement {
   if (detail.isLoading) return <Loading label="Loading document…" />;
   if (detail.isError) return <ErrorBox error={detail.error} />;
   const d = detail.data!;
+  const contradiction = d.flags.find((f) => f.open && f.kind === 'contradiction');
   const disputed = d.flags.some((f) => f.open && f.kind === 'vantage_disagreement');
-  const badge = stateBadge(d.status.current_state, disputed);
+  const badge = stateBadge(d.status.current_state, disputed, contradiction !== undefined);
+  const contradictionBadge =
+    contradiction !== undefined &&
+    typeof contradiction.details === 'object' &&
+    contradiction.details !== null &&
+    'notice_badge' in contradiction.details &&
+    typeof (contradiction.details as { notice_badge?: unknown }).notice_badge === 'string'
+      ? (contradiction.details as { notice_badge: string }).notice_badge
+      : null;
   const verifyCmd = `chronicle verify --doc ${docId}`;
 
   return (
@@ -38,6 +47,11 @@ export function DocPage(): React.ReactElement {
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className={badge.className}>{badge.label}</span>
+            {contradictionBadge ? (
+              <span className="badge-disputed" title={contradictionBadge}>
+                {contradictionBadge}
+              </span>
+            ) : null}
             {d.doc.source_url ? (
               <a href={d.doc.source_url} target="_blank" rel="noreferrer" className="font-mono text-xs no-underline">
                 Source

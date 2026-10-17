@@ -446,6 +446,21 @@ export class IndexerDb {
     );
   }
 
+  /** Docs that share a notice_id, grouped for stretch contradiction checks. */
+  docsByNoticeId(): Map<string, DocRow[]> {
+    const rows = (
+      this.db.prepare('SELECT * FROM docs WHERE notice_id IS NOT NULL ORDER BY notice_id, doc_id').all() as RawDoc[]
+    ).map(toDoc);
+    const map = new Map<string, DocRow[]>();
+    for (const d of rows) {
+      if (d.noticeId === null) continue;
+      const list = map.get(d.noticeId) ?? [];
+      list.push(d);
+      map.set(d.noticeId, list);
+    }
+    return map;
+  }
+
   upsertDoc(d: Omit<DocRow, 'currentState' | 'currentSeq' | 'lastSeenTs' | 'lastChangeTs'>): void {
     this.db
       .prepare(

@@ -10,8 +10,11 @@ describe('format helpers', () => {
   it('maps states to plain badges without fraud language', () => {
     expect(stateBadge('changed', false).label).toBe('Changed');
     expect(stateBadge('present', true).label).toBe('Disputed');
+    expect(stateBadge('present', false, true).label).toBe('Sources disagree');
     expect(stateBadge('removed_404', false).label).toBe('Removed');
     expect(flagExplanation('vantage_disagreement')).toMatch(/disagree/i);
     expect(flagExplanation('vantage_disagreement')).not.toMatch(/fraud|fake/i);
+    expect(flagExplanation('contradiction')).toMatch(/page and PDF/i);
+    expect(flagExplanation('contradiction')).not.toMatch(/fraud|fake/i);
   });
 });

@@ -10,7 +10,10 @@ export interface Notice {
   department: string;
   scheme: string;
   printedDate: string; // YYYY-MM-DD
+  /** Deadline shown on the HTML page. */
   deadline: string; // YYYY-MM-DD
+  /** Deadline shown in the PDF (may differ for stretch contradiction demos). */
+  deadlinePdf: string; // YYYY-MM-DD
   amountInr: number;
   amountUnit: string;
   /** Body paragraphs. Clause 0 is the eligibility clause that `edit_text` replaces. */
@@ -41,6 +44,8 @@ export const MutateBody = z.object({
   id: z.string().regex(/^\d{3}$/),
   action: z.enum(ACTIONS),
   value: z.string().max(2000).optional(),
+  /** Stretch S1: which source `edit_deadline` updates. Default both. */
+  target: z.enum(['page', 'pdf', 'both']).optional(),
 });
 export type MutateBody = z.infer<typeof MutateBody>;
 
@@ -76,7 +81,7 @@ export function shiftDate(iso: string, days: number): string {
 /** Entirely synthetic notices. Names, numbers and schemes are invented. */
 export function seedNotices(updatedAt: number): Notice[] {
   const base = { status: 'live' as const, delisted: false, updatedAt };
-  const notices: Omit<Notice, 'hiddenFromVantages'>[] = [
+  const notices: Omit<Notice, 'hiddenFromVantages' | 'deadlinePdf'>[] = [
     {
       ...base,
       id: '001',
@@ -129,7 +134,7 @@ export function seedNotices(updatedAt: number): Notice[] {
       ],
     },
   ];
-  return notices.map((n) => ({ ...n, hiddenFromVantages: [] }));
+  return notices.map((n) => ({ ...n, deadlinePdf: n.deadline, hiddenFromVantages: [] }));
 }
 
 /** In-memory state for the demo site. `now` returns unix seconds. */
@@ -173,11 +178,14 @@ export class DemoState {
     };
 
     switch (body.action) {
-      case 'edit_deadline':
+      case 'edit_deadline': {
         if (!isIsoDate(value)) throw new MutationError(400, 'edit_deadline needs a YYYY-MM-DD value');
-        n.deadline = value;
+        const target = body.target ?? 'both';
+        if (target === 'page' || target === 'both') n.deadline = value;
+        if (target === 'pdf' || target === 'both') n.deadlinePdf = value;
         touch();
         break;
+      }
       case 'edit_amount': {
         const amount = Number(value.replace(/,/g, ''));
         if (value === '' || !Number.isFinite(amount) || amount < 0 || amount > 1e9) {
