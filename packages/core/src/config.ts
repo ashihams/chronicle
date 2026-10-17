@@ -39,8 +39,8 @@ const EnvSchema = z.object({
   OBSERVATION_TTL_DAYS: int(180, 1),
   RENEW_WHEN_DAYS_LEFT: int(30, 0),
 
-  ANTHROPIC_API_KEY: optStr(),
-  ANTHROPIC_MODEL: str('claude-sonnet-5-5'),
+  GROQ_API_KEY: optStr(),
+  GROQ_MODEL: str('openai/gpt-oss-120b'),
 
   PORT: int(8080, 1),
   INDEXER_DB_PATH: str('./data/indexer.db'),
@@ -84,7 +84,7 @@ export interface Config {
     renewWhenDaysLeft: number;
   };
   llm: {
-    anthropicApiKey: string | undefined;
+    groqApiKey: string | undefined;
     model: string;
   };
   indexer: {
@@ -158,8 +158,8 @@ export function loadConfig(
       renewWhenDaysLeft: e.RENEW_WHEN_DAYS_LEFT,
     },
     llm: {
-      anthropicApiKey: e.ANTHROPIC_API_KEY,
-      model: e.ANTHROPIC_MODEL,
+      groqApiKey: e.GROQ_API_KEY,
+      model: e.GROQ_MODEL,
     },
     indexer: {
       port: e.PORT,

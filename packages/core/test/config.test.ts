@@ -15,6 +15,7 @@ describe('loadConfig', () => {
     expect(c.indexer.port).toBe(8080);
     expect(c.bot.maxFileMb).toBe(10);
     expect(c.demo.port).toBe(4000);
+    expect(c.llm).toEqual({ groqApiKey: undefined, model: 'openai/gpt-oss-120b' });
   });
 
   it('coerces numbers and treats empty strings as unset', () => {

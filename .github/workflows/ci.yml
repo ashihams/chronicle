@@ -22,3 +22,7 @@ jobs:
       - run: pnpm test
         env:
           ARKIV_MODE: fake
+      - name: Core coverage (>= 85 percent lines)
+        run: pnpm --filter @chronicle/core test:coverage
+        env:
+          ARKIV_MODE: fake

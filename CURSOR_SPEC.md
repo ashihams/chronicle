@@ -65,7 +65,7 @@ alwaysApply: true
 - Storage (off-chain derived data only): SQLite via `better-sqlite3`.
 - HTML parsing: cheerio. Text diff: `diff` (jsdiff). Robots: `robots-parser`. CLI: `commander`.
 - PDF: poppler-utils binaries `pdftotext`, `pdfinfo`, `pdfsig` called via `child_process.execFile` (installed in Docker; install locally with `brew install poppler` or `apt-get install poppler-utils`). Demo PDFs generated with `pdf-lib`.
-- LLM: `@anthropic-ai/sdk`. Model from env `ANTHROPIC_MODEL`.
+- LLM: Groq (OpenAI-compatible chat completions API, called with `fetch`, strict structured outputs). Model from env `GROQ_MODEL`. (Changed from Anthropic at the owner's request on 16 Oct.)
 - Bot: `grammy` (long polling).
 - Web: Vite + React 18 + TypeScript + Tailwind + React Router + TanStack Query.
 - Docker + docker-compose. Reverse proxy on the VPS: Caddy.
@@ -136,8 +136,8 @@ OBSERVATION_TTL_DAYS=180
 RENEW_WHEN_DAYS_LEFT=30
 
 # LLM
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-5-5
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-120b
 
 # Indexer / API
 PORT=8080
@@ -166,6 +166,8 @@ DEMO_ADMIN_TOKEN=change-me
 Rules: attributes are string or numeric only. Numeric = JS number (safe integers). Booleans are 0/1. Strings are lowercase unless stated. Empty values are not stored; omit the attribute instead. `schema_v` is always `1`.
 
 Stage 1 may change limits (max attribute count, max payload size, key length). If so, update this section and `arkiv/schema.md` and note it in `PROGRESS.md`.
+
+> **Stage 1 results (applied in Stage 2):** at most 30 user attributes per entity; `str` values at most 128 UTF-8 bytes and never empty; numbers are stored as `u64`; payload limit 128 KB (observation payloads stay under 4 KB). Because of the 128-byte limit, the `doc` attribute `source_url` is only written when the canonical URL fits, and the `doc` payload always carries `source_url`. Free-text stretch attributes (`pdf_producer`, `sig_signer_org`) are truncated to 128 bytes. See `arkiv/schema.md`.
 
 ### 5.1 Common
 
@@ -505,7 +507,7 @@ zod `ExtractionSchema`:
   summary_en: string /* <=240 */, severity: 0|1|2|3, confidence: number /* 0..1 */ }
 ```
 `datesToTs(dateStr)` returns unix seconds of 00:00 IST for the date (use fixed offset +05:30). `inrToPaise(n)` = `Math.round(n*100)`.
-`extractFields(llm, { text, diffHunks, kind })`: calls Anthropic with the prompt in Appendix B, forces JSON, validates with zod, retries once on invalid JSON, and on final failure returns a null-field result with `confidence: 0` and `summary_en: "extraction failed"`. Never throws. Truncate input text to 12,000 chars. The `LlmClient` interface is injectable so tests use a stub.
+`extractFields(llm, { text, diffHunks, kind })`: calls Groq with the prompt in Appendix B, forces JSON, validates with zod, retries once on invalid JSON, and on final failure returns a null-field result with `confidence: 0` and `summary_en: "extraction failed"`. Never throws. Truncate input text to 12,000 chars. The `LlmClient` interface is injectable so tests use a stub.
 
 ### 2.7 Builders (`observation.ts`)
 `buildObservationAttrs(...)` and `buildObservationPayload(...)` that produce exactly the shapes in 5.3 and omit absent optional attributes. Enforce limits found in Stage 1 (payload size, attribute count) with explicit errors.
