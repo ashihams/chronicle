@@ -61,6 +61,8 @@ export const ObservationPayloadSchema = z
   .object({
     title: nullableText.default(null),
     summary_en: nullableText.default(null),
+    summary_ta: nullableText.default(null),
+    summary_hi: nullableText.default(null),
     final_url: nullableText.default(null),
     changes: z
       .array(z.object({ field: z.string(), from: z.string().nullable(), to: z.string().nullable() }))
@@ -69,7 +71,16 @@ export const ObservationPayloadSchema = z
     extractor: z.object({ model: z.string(), confidence: z.number() }).nullable().catch(null).default(null),
     declared_supersedes: nullableText.default(null),
   })
-  .catch({ title: null, summary_en: null, final_url: null, changes: [], extractor: null, declared_supersedes: null });
+  .catch({
+    title: null,
+    summary_en: null,
+    summary_ta: null,
+    summary_hi: null,
+    final_url: null,
+    changes: [],
+    extractor: null,
+    declared_supersedes: null,
+  });
 export type ObservationPayloadView = z.infer<typeof ObservationPayloadSchema>;
 
 export const DocPayloadSchema = z

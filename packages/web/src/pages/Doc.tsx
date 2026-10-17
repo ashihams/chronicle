@@ -1,12 +1,22 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { fetchDoc, fetchTimeline, type TimelineEvent } from '../api';
 import { CopyButton } from '../components/CopyButton';
 import { Empty, ErrorBox, Loading } from '../components/Status';
-import { flagExplanation, formatWhen, shortHex, signatureWording, stateBadge } from '../format';
+import {
+  flagExplanation,
+  formatWhen,
+  pickSummary,
+  shortHex,
+  signatureWording,
+  stateBadge,
+  type SummaryLang,
+} from '../format';
 
 export function DocPage(): React.ReactElement {
   const { docId = '' } = useParams();
+  const [summaryLang, setSummaryLang] = useState<SummaryLang>('en');
   const detail = useQuery({
     queryKey: ['doc', docId],
     queryFn: () => fetchDoc(docId),
@@ -83,6 +93,22 @@ export function DocPage(): React.ReactElement {
         </div>
       </div>
 
+      <label className="block max-w-xs">
+        <span className="label">Summary language</span>
+        <select
+          className="field"
+          value={summaryLang}
+          onChange={(e) => setSummaryLang(e.target.value as SummaryLang)}
+        >
+          <option value="en">English</option>
+          <option value="ta">Tamil</option>
+          <option value="hi">Hindi</option>
+        </select>
+        <span className="mt-1 block font-mono text-[10px] uppercase tracking-wider text-stardust/70">
+          Tamil/Hindi summaries are machine-generated
+        </span>
+      </label>
+
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="panel p-5 sm:p-6">
           <h2 className="font-heading text-xl font-semibold">Versions</h2>
@@ -92,27 +118,35 @@ export function DocPage(): React.ReactElement {
             </div>
           ) : (
             <ol className="mt-4 space-y-3">
-              {d.versions.map((v) => (
-                <li
-                  key={`${v.normalizer_version}-${v.seq}`}
-                  className="relative rounded-xl border border-white/10 bg-black/30 p-4 before:absolute before:left-0 before:top-0 before:h-3 before:w-3 before:rounded-tl-xl before:border-l before:border-t before:border-btc/60 after:absolute after:bottom-0 after:right-0 after:h-3 after:w-3 after:rounded-br-xl after:border-b after:border-r after:border-btc/40"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="font-heading font-semibold">
-                      v{v.seq}{' '}
-                      <span className="font-mono text-[11px] font-normal uppercase tracking-wider text-stardust">
-                        {v.status === 'current' ? 'current' : 'superseded'}
-                      </span>
+              {d.versions.map((v) => {
+                const summary = pickSummary(summaryLang, v);
+                return (
+                  <li
+                    key={`${v.normalizer_version}-${v.seq}`}
+                    className="relative rounded-xl border border-white/10 bg-black/30 p-4 before:absolute before:left-0 before:top-0 before:h-3 before:w-3 before:rounded-tl-xl before:border-l before:border-t before:border-btc/60 after:absolute after:bottom-0 after:right-0 after:h-3 after:w-3 after:rounded-br-xl after:border-b after:border-r after:border-btc/40"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="font-heading font-semibold">
+                        v{v.seq}{' '}
+                        <span className="font-mono text-[11px] font-normal uppercase tracking-wider text-stardust">
+                          {v.status === 'current' ? 'current' : 'superseded'}
+                        </span>
+                      </p>
+                      <p className="font-mono text-[11px] text-stardust">{formatWhen(v.first_seen_ts)}</p>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-stardust">{summary.text || 'No summary.'}</p>
+                    {summary.machineGenerated ? (
+                      <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-stardust/70">
+                        Machine-generated
+                      </p>
+                    ) : null}
+                    <p className="mt-2 font-mono text-[11px] text-stardust">
+                      {v.observer_count} observer{v.observer_count === 1 ? '' : 's'} ·{' '}
+                      <span className="text-white/80">{shortHex(v.norm_sha256, 8, 6)}</span>
                     </p>
-                    <p className="font-mono text-[11px] text-stardust">{formatWhen(v.first_seen_ts)}</p>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-stardust">{v.summary_en || 'No summary.'}</p>
-                  <p className="mt-2 font-mono text-[11px] text-stardust">
-                    {v.observer_count} observer{v.observer_count === 1 ? '' : 's'} ·{' '}
-                    <span className="text-white/80">{shortHex(v.norm_sha256, 8, 6)}</span>
-                  </p>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>
@@ -159,7 +193,7 @@ export function DocPage(): React.ReactElement {
           <ol className="relative mt-8 space-y-8 border-l-2 border-transparent pl-8">
             <span className="chain-line absolute bottom-0 left-0 top-0 w-0.5" aria-hidden />
             {(timeline.data?.events ?? []).map((e, i) => (
-              <TimelineItem key={`${e.kind}-${e.ts}-${i}`} event={e} />
+              <TimelineItem key={`${e.kind}-${e.ts}-${i}`} event={e} summaryLang={summaryLang} />
             ))}
           </ol>
         )}
@@ -174,7 +208,13 @@ export function DocPage(): React.ReactElement {
   );
 }
 
-function TimelineItem({ event }: { event: TimelineEvent }): React.ReactElement {
+function TimelineItem({
+  event,
+  summaryLang,
+}: {
+  event: TimelineEvent;
+  summaryLang: SummaryLang;
+}): React.ReactElement {
   if (event.kind === 'version') {
     return (
       <li className="relative">
@@ -244,7 +284,22 @@ function TimelineItem({ event }: { event: TimelineEvent }): React.ReactElement {
             hash {shortHex(String(event.norm_sha256), 10, 8)} <CopyButton value={String(event.norm_sha256)} />
           </p>
         ) : null}
-        {event.summary_en ? <p className="leading-relaxed text-white/85">{String(event.summary_en)}</p> : null}
+        {(() => {
+          const summary = pickSummary(summaryLang, {
+            summary_en: typeof event.summary_en === 'string' ? event.summary_en : null,
+            summary_ta: typeof event.summary_ta === 'string' ? event.summary_ta : null,
+            summary_hi: typeof event.summary_hi === 'string' ? event.summary_hi : null,
+          });
+          if (!summary.text) return null;
+          return (
+            <>
+              <p className="leading-relaxed text-white/85">{summary.text}</p>
+              {summary.machineGenerated ? (
+                <p className="font-mono text-[10px] uppercase tracking-wider text-stardust/70">Machine-generated</p>
+              ) : null}
+            </>
+          );
+        })()}
         {typeof event.explorer_url === 'string' ? (
           <a href={event.explorer_url} target="_blank" rel="noreferrer" className="font-mono text-xs no-underline">
             Open in explorer

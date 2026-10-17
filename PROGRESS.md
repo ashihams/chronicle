@@ -27,7 +27,7 @@
 - [x] S3 PDF signature checks
 - [x] S4 follow-and-alert
 - [x] S5 verifier extras
-- [ ] S6 Tamil/Hindi
+- [x] S6 Tamil/Hindi
 
 ## Decisions and notes
 
@@ -237,7 +237,13 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 - Watchers write `simhash_hex`; near-match when Hamming ≤ 3 → `similar_match` / label "similar, not identical".
 - Reply language: `lang=en|ta|hi` on match body/query; Verify page language select. Fixed note strings (S6 will fill payload summaries).
 
-- Stretch S6: not started. Cut at freeze unless completed.
+### Stretch S6 (Tamil/Hindi summaries)
+
+- Extraction prompt/schema returns `summary_ta` / `summary_hi` (nullable); watcher stores them on the observation payload when LLM is used.
+- Indexer keeps both fields; Doc versions enrich from the first observation entity; timeline exposes them.
+- Doc page summary-language toggle; TA/HI labeled "Machine-generated" (fallback to English).
+
+- Stretch cut list otherwise: Docker size numbers and optional community watcher still pending.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 

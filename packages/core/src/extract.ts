@@ -79,6 +79,9 @@ export const ExtractionSchema = z.object({
     .string()
     .transform((s) => s.replace(/\s+/g, ' ').trim().slice(0, MAX_SUMMARY_CHARS))
     .pipe(z.string().min(1)),
+  /** Stretch S6: machine-generated Tamil / Hindi; null when the model cannot produce them. */
+  summary_ta: shortTextOrNull(MAX_SUMMARY_CHARS * 2),
+  summary_hi: shortTextOrNull(MAX_SUMMARY_CHARS * 2),
   severity: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
   confidence: z
     .number()
@@ -100,6 +103,8 @@ export const EXTRACTION_JSON_SCHEMA = {
     'amount_inr',
     'declared_supersedes',
     'summary_en',
+    'summary_ta',
+    'summary_hi',
     'severity',
     'confidence',
   ],
@@ -112,6 +117,14 @@ export const EXTRACTION_JSON_SCHEMA = {
     amount_inr: { type: ['number', 'null'] },
     declared_supersedes: { type: ['string', 'null'] },
     summary_en: { type: 'string', description: 'one sentence, at most 240 characters' },
+    summary_ta: {
+      type: ['string', 'null'],
+      description: 'Tamil translation of summary_en, at most 480 characters; null if unavailable',
+    },
+    summary_hi: {
+      type: ['string', 'null'],
+      description: 'Hindi translation of summary_en, at most 480 characters; null if unavailable',
+    },
     severity: { type: 'integer', enum: [0, 1, 2, 3] },
     confidence: { type: 'number', description: '0.0 to 1.0' },
   },
@@ -125,6 +138,8 @@ Rules:
 - amount_inr is a number in rupees (no symbols, no commas). If several amounts appear, use the main sanctioned/benefit/fee amount; else null.
 - declared_supersedes: copy a short reference if the notice says it replaces or supersedes another notice (for example "Circular No. 14/2026 dated 2026-09-02"); else null.
 - summary_en: one neutral sentence (max 240 characters) describing what changed, based on the diff hunks when provided, otherwise what the notice is about. Do not speculate about reasons or intent.
+- summary_ta: the same meaning as summary_en in Tamil (max 480 characters). If you cannot produce Tamil, use null.
+- summary_hi: the same meaning as summary_en in Hindi (max 480 characters). If you cannot produce Hindi, use null.
 - severity: 0 cosmetic, 1 wording change, 2 change to a deadline, amount, eligibility or obligation, 3 removal of a clause or the whole notice.
 - confidence: 0.0-1.0, your confidence in the extracted fields.
 - department and scheme: short lowercase slugs from the text, else null.
@@ -171,6 +186,8 @@ export const FAILED_EXTRACTION: Extraction = Object.freeze({
   amount_inr: null,
   declared_supersedes: null,
   summary_en: 'extraction failed',
+  summary_ta: null,
+  summary_hi: null,
   severity: 0,
   confidence: 0,
 });
