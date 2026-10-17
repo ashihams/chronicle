@@ -4,6 +4,9 @@
   "private": true,
   "description": "chronicle verify / bundle CLI",
   "type": "module",
+  "bin": {
+    "chronicle": "./dist/main.js"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -16,9 +19,10 @@
     "build": "tsc -b",
     "test": "vitest run",
     "lint": "eslint src test --ext .ts,.tsx --no-error-on-unmatched-pattern",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/main.ts"
   },
   "dependencies": {
-    "@chronicle/core": "workspace:*"
+    "@chronicle/core": "workspace:*",
+    "commander": "^12.1.0"
   }
 }

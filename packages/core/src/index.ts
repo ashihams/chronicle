@@ -9,4 +9,5 @@ export * from './extract.js';
 export * from './heuristic.js';
 export * from './llm.js';
 export * from './observation.js';
+export * from './bundle.js';
 export * from './arkiv/index.js';

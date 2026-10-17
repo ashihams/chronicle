@@ -55,6 +55,8 @@ async function setup(
     explorerBase: EXPLORER,
     log: silentLog,
     now: () => chain.t,
+    chainId: 7738577,
+    rpcHttp: 'https://rpc.example.test',
     ...opts,
   });
   apps.push(app);

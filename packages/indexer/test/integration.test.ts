@@ -87,6 +87,8 @@ describe('demo site, watchers and indexer on one fake chain', () => {
       explorerBase: 'https://explorer.example.test',
       log: silentLog,
       now: () => t,
+      chainId: 7738577,
+      rpcHttp: 'https://rpc.example.test',
     });
     try {
       const docId = docIdFor(canonicalizeUrl(`${base}/circulars/001`));

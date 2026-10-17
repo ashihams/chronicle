@@ -10,7 +10,7 @@
 - [x] S5 indexer, derived data, API, live attribute-query endpoints
 - [x] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
-- [ ] S7 evidence bundle + CLI verify
+- [x] S7 evidence bundle + CLI verify
 - [ ] S8 Docker, compose, community watcher instructions
 - [ ] S9 schema.md, friction.md, README, privacy tests, seed demo
 - [ ] Two distinct funded wallets, two networks, observations on live Tiramisu
@@ -149,7 +149,15 @@
 - New dependency: `@fastify/multipart` (needed for the multipart upload path; not listed in the stack table, added for Stage 6 only).
 - `packages/web`: Vite + React 18 + Tailwind + React Router + TanStack Query. Pages: Home, Doc (versions, flags, timeline), Verify, Watchers, About. Footer disclaimer as specified. Smoke tests with a stubbed `fetch` cover home, timeline, and verify exact/no match.
 - UI design: owner-supplied **Bitcoin DeFi** system (true void `#030304`, surface `#0F1115`, Bitcoin orange `#F7931A` / burnt `#EA580C` / gold `#FFD600`, Space Grotesk + Inter + JetBrains Mono, pill CTAs, glass panels, grid fade, orange glow shadows, blockchain-style timeline). Dark-only (overrides the spec's `prefers-color-scheme` dual theme for this stage). No `lucide-react` / `cva` — tokens and component classes live in `tailwind.config.js` + `styles.css` so the stack stays as listed. Flag copy never uses "fraud" or "fake".
-- Evidence bundle download button points at `/api/bundle/:docId` (Stage 7); until then the route 404s.
+- Evidence bundle download button points at `/api/bundle/:docId` (implemented in Stage 7).
+
+### Stage 7
+
+- Evidence bundle (`bundle_version: 1`) schema, `sealBundle` / `parseAndCheckBundle` / `computeBundleSha256` live in `@chronicle/core` so the indexer and CLI share one hash. Canonical JSON is the existing `sha256Of` (sorted keys).
+- `GET /api/bundle/:docId` builds from the mirror (`buildEvidenceBundle`): doc metadata, versions, open flags, and every mirrored entity for the doc (doc + observations) ordered by `(creation_block, entity_key)`. Response is downloadable JSON with `bundle_sha256`.
+- `packages/cli` (`chronicle` bin via commander): `bundle <doc_id> [--api] [--out]`, `verify <file> [--rpc]`, `entity <key> [--rpc]`. Verify recomputes the hash, re-fetches each entry through `ArkivClient`, checks creator/owner/block/expiry/attributes/payload_sha256/tx (via `getEntity` tx hash or `createdEvents` in the creation block). States: PASS, FAIL, EXPIRED, DELETED, OWNER_CHANGED. Exit 0 / 1 / 2 as specified. Disclaimer printed at the end.
+- FakeArkivNetwork now keeps a `creationLog` that survives `__delete`, matching live `EntityCreated` logs so DELETED/EXPIRED verification can still prove the creating tx (Stage 1 probe e10).
+- New dependency: `commander` (listed in the stack table).
 
 ## Cut list
 

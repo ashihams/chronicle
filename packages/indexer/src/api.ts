@@ -17,6 +17,7 @@ import multipart from '@fastify/multipart';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import type { Logger } from 'pino';
 import { z } from 'zod';
+import { buildEvidenceBundle } from './bundle-build.js';
 import type { DocRow, EntityRow, FlagRow, IndexerDb, VersionRow } from './db.js';
 import { STATE_KEYS } from './indexer.js';
 import { explorerLinks, RateLimiter, resolveStatic } from './http-util.js';
@@ -37,6 +38,9 @@ export interface ApiOptions {
   maxFileMb?: number;
   /** Injectable poppler runner for tests. */
   pdfExec?: ExecTool;
+  /** Embedded in evidence bundles so `chronicle verify` knows which chain to use. */
+  chainId: number;
+  rpcHttp: string;
 }
 
 class ApiError extends Error {
@@ -541,6 +545,20 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
   });
 
   const matchTextBody = z.object({ text: z.string().min(1, 'text must not be empty').max(2_000_000) }).strict();
+
+  app.get('/api/bundle/:docId', async (req, reply) => {
+    const { docId } = parse(docIdParam, req.params);
+    const bundle = buildEvidenceBundle(o.db, docId, {
+      chainId: o.chainId,
+      rpc: o.rpcHttp,
+      generatedAt: Math.floor(now()),
+    });
+    if (bundle === null) throw new ApiError(404, 'not_found', 'No such doc');
+    void reply
+      .header('content-disposition', `attachment; filename="chronicle-${docId.slice(0, 12)}.json"`)
+      .header('cache-control', 'no-store');
+    return bundle;
+  });
 
   /**
    * Stage 6 verifier: normalizes text or a PDF in memory (poppler may use a deleted temp file),

@@ -93,6 +93,8 @@ export async function startIndexer(o: StartIndexerOptions): Promise<IndexerHandl
     explorerBase: o.config.arkiv.explorerBase,
     log: o.log,
     maxFileMb: o.config.bot.maxFileMb,
+    chainId: o.config.arkiv.chainId,
+    rpcHttp: o.config.arkiv.rpcHttp,
     ...(o.webDist !== undefined && { webDist: o.webDist }),
   });
 

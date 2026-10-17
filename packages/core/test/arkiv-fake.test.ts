@@ -195,8 +195,8 @@ describe('FakeArkivClient', () => {
     expect(await a.getEntity(second.key)).toBeNull();
   });
 
-  it('lists created events in a block range', async () => {
-    const { a, b } = setup();
+  it('lists created events in a block range, including after delete', async () => {
+    const { a, b, network } = setup();
     const x = await a.createEntity({ attributes: { type: 'x' }, payload: null, ttlSeconds: DAY });
     const y = await b.createEntity({ attributes: { type: 'x' }, payload: null, ttlSeconds: DAY });
     expect((await a.createdEvents(101n, 102n)).map((e) => [e.key, e.owner, e.txHash])).toEqual([
@@ -204,6 +204,8 @@ describe('FakeArkivClient', () => {
       [y.key, B, y.txHash],
     ]);
     expect(await a.createdEvents(102n, 200n)).toHaveLength(1);
+    network.__delete(y.key);
+    expect((await a.createdEvents(101n, 102n)).map((e) => e.key)).toEqual([x.key, y.key]);
   });
 
   it('reports block, timestamps, balance and address', async () => {
