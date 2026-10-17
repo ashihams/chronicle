@@ -8,7 +8,7 @@
 - [x] S3 demo site with admin mutations
 - [x] S4 watcher, writes to fake and live Arkiv
 - [x] S5 indexer, derived data, API, live attribute-query endpoints
-- [ ] S6 web UI + /api/match
+- [x] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
 - [ ] S7 evidence bundle + CLI verify
 - [ ] S8 Docker, compose, community watcher instructions
@@ -142,6 +142,14 @@
   - `FakeArkivNetwork` takes an optional `clock`, so the head advances with time and block timestamps follow it. `ARKIV_MODE=fake` uses the wall clock. Without this, fake chain time drifted away from the watcher's `observed_at`, and every observation would have been flagged `clock_skew`.
 - `ARKIV_MODE=fake` chains live in one process, so `pnpm dev:fake` (after `pnpm build`) runs the demo site, one watcher and the indexer API on one in-memory chain. Verified on 16 Oct with `PORT=8090`, because a Windows system service holds 8080 on this machine: 6 docs, 12 mirrored entities, timeline with a version boundary, `/api/arkiv/changes` returned `source: "arkiv-live"`, and `/api/entities/:key` gave `matches_mirror: true`. The change flow (two watchers, `edit_deadline`, `vantage_disagreement`, live changes query) is covered by the in-process integration test.
 - HUMAN: confirm the explorer link formats (`/entity/<key>`, `/tx/<hash>`, `/address/<addr>`). The explorer is a single-page app that answers 200 for any path, so they could not be checked automatically.
+
+### Stage 6
+
+- `POST /api/match` in the indexer: JSON `{ text }` or multipart `file` (PDF, max `BOT_MAX_FILE_MB`). Text is normalized with `normalizeText` / `normHash`; PDFs go through `normalizePdf` (and `raw_sha256` for byte-identical matches). Lookup is against mirrored `versions` by `norm_sha256`, plus observations that recorded the same `raw_sha256`. Response shape matches the Stage 6 note (exact / no match, plain-language `note`). The request body is never logged or written to SQLite. Poppler may use a deleted temp file for PDF text extraction (same as the watcher); that is called out on the Verify page.
+- New dependency: `@fastify/multipart` (needed for the multipart upload path; not listed in the stack table, added for Stage 6 only).
+- `packages/web`: Vite + React 18 + Tailwind + React Router + TanStack Query. Pages: Home, Doc (versions, flags, timeline), Verify, Watchers, About. Footer disclaimer as specified. Smoke tests with a stubbed `fetch` cover home, timeline, and verify exact/no match.
+- UI design: owner-supplied **Bitcoin DeFi** system (true void `#030304`, surface `#0F1115`, Bitcoin orange `#F7931A` / burnt `#EA580C` / gold `#FFD600`, Space Grotesk + Inter + JetBrains Mono, pill CTAs, glass panels, grid fade, orange glow shadows, blockchain-style timeline). Dark-only (overrides the spec's `prefers-color-scheme` dual theme for this stage). No `lucide-react` / `cva` — tokens and component classes live in `tailwind.config.js` + `styles.css` so the stack stays as listed. Flag copy never uses "fraud" or "fake".
+- Evidence bundle download button points at `/api/bundle/:docId` (Stage 7); until then the route 404s.
 
 ## Cut list
 

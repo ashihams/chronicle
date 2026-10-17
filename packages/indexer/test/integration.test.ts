@@ -81,7 +81,7 @@ describe('demo site, watchers and indexer on one fake chain', () => {
       silentLog,
     );
     await indexer.sync();
-    const app = buildApi({
+    const app = await buildApi({
       db,
       arkiv: watcherA,
       explorerBase: 'https://explorer.example.test',

@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-h-screen bg-void font-body text-white antialiased;
+    background-image:
+      radial-gradient(ellipse 70% 45% at 15% -5%, rgba(247, 147, 26, 0.14), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 95% 5%, rgba(255, 214, 0, 0.06), transparent 50%),
+      radial-gradient(ellipse 60% 50% at 50% 110%, rgba(234, 88, 12, 0.08), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  a {
+    @apply text-btc underline-offset-2 transition hover:text-btc-gold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-btc;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-btc ring-offset-2 ring-offset-void;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-shell px-4 sm:px-6 lg:px-8;
+  }
+
+  .bg-grid-fade {
+    background-size: 50px 50px;
+    background-image:
+      linear-gradient(to right, rgba(30, 41, 59, 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(30, 41, 59, 0.55) 1px, transparent 1px);
+    mask-image: radial-gradient(circle at center, black 35%, transparent 100%);
+  }
+
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-btc to-btc-gold bg-clip-text text-transparent;
+  }
+
+  .panel {
+    @apply rounded-2xl border border-white/10 bg-surface/90 shadow-glow-soft backdrop-blur-sm transition-all duration-300;
+  }
+
+  .panel-glass {
+    @apply rounded-2xl border border-white/10 bg-black/40 shadow-glow-soft backdrop-blur-lg;
+  }
+
+  .panel-interactive {
+    @apply panel hover:-translate-y-0.5 hover:border-btc/50 hover:shadow-glow;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 py-2 font-body text-sm font-semibold tracking-wider transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-btc disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-btc-burn to-btc text-white shadow-glow hover:scale-105 hover:shadow-glow-lg;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-white/20 bg-transparent text-white hover:border-white hover:bg-white/10;
+  }
+
+  .btn-ghost {
+    @apply btn border-0 bg-transparent text-white hover:bg-white/10 hover:text-btc;
+  }
+
+  .field {
+    @apply h-12 w-full border-0 border-b-2 border-white/20 bg-black/50 px-4 py-2 font-body text-sm text-white placeholder:text-white/30 transition duration-200 focus-visible:border-btc focus-visible:shadow-[0_10px_20px_-10px_rgba(247,147,26,0.3)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .label {
+    @apply mb-1.5 block font-mono text-[11px] font-medium uppercase tracking-widest text-stardust;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-lg px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider;
+  }
+
+  .badge-current {
+    @apply badge border border-btc/40 bg-btc/15 text-btc-gold;
+  }
+
+  .badge-changed {
+    @apply badge border border-btc-burn/50 bg-btc-burn/20 text-btc;
+  }
+
+  .badge-removed {
+    @apply badge border border-white/20 bg-white/5 text-stardust;
+  }
+
+  .badge-disputed {
+    @apply badge border border-btc-gold/40 bg-btc-gold/10 text-btc-gold;
+  }
+
+  .badge-muted {
+    @apply badge border border-white/10 bg-white/5 text-stardust;
+  }
+
+  .nav-link {
+    @apply rounded-full px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wider text-stardust no-underline transition hover:bg-white/5 hover:text-white;
+  }
+
+  .nav-link-active {
+    @apply nav-link bg-gradient-to-r from-btc-burn/30 to-btc/20 text-btc shadow-glow;
+  }
+
+  .chain-line {
+    background: linear-gradient(to bottom, #f7931a, rgba(247, 147, 26, 0.15), transparent);
+  }
+
+  .live-dot {
+    @apply relative inline-flex h-2 w-2 rounded-full bg-btc;
+  }
+
+  .live-dot::before {
+    content: '';
+    @apply absolute inset-0 animate-ping rounded-full bg-btc/70;
+  }
+}

@@ -1,11 +1,26 @@
 import { existsSync } from 'node:fs';
-import { REMOVAL_STATES, sha256Of, type ArkivClient, type ArkivEntityRecord, type Where } from '@chronicle/core';
+import {
+  PopplerMissingError,
+  REMOVAL_STATES,
+  hasPdfHeader,
+  normalizePdf,
+  normalizeText,
+  normHash,
+  sha256Hex,
+  sha256Of,
+  type ArkivClient,
+  type ArkivEntityRecord,
+  type ExecTool,
+  type Where,
+} from '@chronicle/core';
+import multipart from '@fastify/multipart';
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import type { Logger } from 'pino';
 import { z } from 'zod';
 import type { DocRow, EntityRow, FlagRow, IndexerDb, VersionRow } from './db.js';
 import { STATE_KEYS } from './indexer.js';
 import { explorerLinks, RateLimiter, resolveStatic } from './http-util.js';
+import { lookupMatch } from './match-lookup.js';
 import { ObservationAttrsSchema, ObservationPayloadSchema, rejectReason } from './schema.js';
 
 export interface ApiOptions {
@@ -18,6 +33,10 @@ export interface ApiOptions {
   /** Wall clock in unix seconds, for `/api/arkiv/changes`. */
   now?: () => number;
   rateLimit?: { max: number; windowMs: number };
+  /** Max upload size for `/api/match` PDFs (from `BOT_MAX_FILE_MB`). */
+  maxFileMb?: number;
+  /** Injectable poppler runner for tests. */
+  pdfExec?: ExecTool;
 }
 
 class ApiError extends Error {
@@ -281,12 +300,17 @@ export function changesWhere(nowTs: number, days: number, field: 'deadline' | 'a
   return where;
 }
 
-export function buildApi(o: ApiOptions): FastifyInstance {
+export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, trustProxy: true });
   const links = explorerLinks(o.explorerBase);
   const limiter = new RateLimiter(o.rateLimit?.max ?? 60, o.rateLimit?.windowMs ?? 60_000);
   const now = o.now ?? ((): number => Date.now() / 1000);
   const webDist = o.webDist !== undefined && existsSync(o.webDist) ? o.webDist : undefined;
+  const maxFileBytes = Math.max(1, o.maxFileMb ?? 10) * 1024 * 1024;
+
+  await app.register(multipart, {
+    limits: { files: 1, fileSize: maxFileBytes, fields: 4, parts: 8 },
+  });
 
   app.addHook('onRequest', async (req, reply) => {
     if (req.method === 'GET' || req.method === 'HEAD') reply.header('access-control-allow-origin', '*');
@@ -516,5 +540,68 @@ export function buildApi(o: ApiOptions): FastifyInstance {
     return liveQuery(reply, [{ attr: 'type', op: 'eq', value: 'observation' }], q, { creator: address });
   });
 
+  const matchTextBody = z.object({ text: z.string().min(1, 'text must not be empty').max(2_000_000) }).strict();
+
+  /**
+   * Stage 6 verifier: normalizes text or a PDF in memory (poppler may use a deleted temp file),
+   * hashes it, and looks up mirrored versions. The body is never logged or stored in SQLite.
+   */
+  app.post('/api/match', async (req) => {
+    const ctype = req.headers['content-type'] ?? '';
+    if (ctype.includes('multipart/form-data')) {
+      let file: { buffer: Buffer; filename: string; mimetype: string } | null = null;
+      let textField: string | undefined;
+      try {
+        for await (const part of req.parts()) {
+          if (part.type === 'file') {
+            if (file !== null) throw new ApiError(400, 'bad_request', 'Only one file is accepted');
+            const buffer = await part.toBuffer();
+            file = { buffer, filename: part.filename, mimetype: part.mimetype };
+          } else if (part.fieldname === 'text' && typeof part.value === 'string') {
+            textField = part.value;
+          }
+        }
+      } catch (err) {
+        if (err instanceof ApiError) throw err;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/limit|too large|file size/i.test(msg)) {
+          throw new ApiError(413, 'payload_too_large', `PDF must be at most ${o.maxFileMb ?? 10} MB`);
+        }
+        throw new ApiError(400, 'bad_request', 'Could not read multipart body');
+      }
+      if (file !== null) {
+        return matchPdf(file.buffer, o);
+      }
+      if (textField !== undefined) {
+        const { text } = parse(matchTextBody, { text: textField });
+        return lookupMatch(o.db, { normSha256: normHash(normalizeText(text)) });
+      }
+      throw new ApiError(400, 'bad_request', 'multipart body must include file or text');
+    }
+
+    const body = parse(matchTextBody, req.body);
+    return lookupMatch(o.db, { normSha256: normHash(normalizeText(body.text)) });
+  });
+
   return app;
+}
+
+async function matchPdf(bytes: Buffer, o: ApiOptions): Promise<ReturnType<typeof lookupMatch>> {
+  if (bytes.byteLength === 0) throw new ApiError(400, 'bad_request', 'Empty file');
+  if (bytes.byteLength > Math.max(1, o.maxFileMb ?? 10) * 1024 * 1024) {
+    throw new ApiError(413, 'payload_too_large', `PDF must be at most ${o.maxFileMb ?? 10} MB`);
+  }
+  const u8 = new Uint8Array(bytes);
+  if (!hasPdfHeader(u8)) throw new ApiError(400, 'bad_request', 'File is not a PDF');
+  const rawSha256 = sha256Hex(u8);
+  try {
+    const pdf = await normalizePdf(u8, o.pdfExec !== undefined ? { exec: o.pdfExec } : {});
+    return lookupMatch(o.db, { normSha256: pdf.normSha256, rawSha256 });
+  } catch (err) {
+    if (err instanceof PopplerMissingError) {
+      throw new ApiError(503, 'poppler_missing', 'PDF tools are not installed on this server');
+    }
+    o.log.warn({ err: err instanceof Error ? err.message : String(err) }, 'pdf normalize failed');
+    throw new ApiError(400, 'bad_request', 'Could not read PDF');
+  }
 }
