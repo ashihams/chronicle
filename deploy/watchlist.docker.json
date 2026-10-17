@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "indexes": [
+    {
+      "index_id": "demo-index",
+      "url": "http://demo-site:4000/circulars/",
+      "mode": "archive",
+      "link_selector": "a.notice-link",
+      "max_pages": 1
+    }
+  ],
+  "items": [
+    {
+      "notice_id": "demo-001",
+      "department": "demo-dept-a",
+      "scheme": "demo-scheme-1",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "http://demo-site:4000/circulars/001",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "http://demo-site:4000/circulars/001.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "demo-002",
+      "department": "demo-dept-b",
+      "scheme": "demo-scheme-2",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "http://demo-site:4000/circulars/002",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "http://demo-site:4000/circulars/002.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "demo-003",
+      "department": "demo-dept-c",
+      "scheme": "demo-scheme-3",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "http://demo-site:4000/circulars/003",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "http://demo-site:4000/circulars/003.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "real-todo-01",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-02",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-03",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "pdf",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-04",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-05",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-06",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "pdf",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-07",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-08",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-09",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "pdf",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-10",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-11",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-todo-12",
+      "department": "todo",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "TODO",
+          "kind": "pdf",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": false
+    }
+  ]
+}

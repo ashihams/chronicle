@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+**/coverage
+**/.tsbuildinfo
+.git
+.github
+data
+.env
+.env.*
+*.md
+!README.md
+packages/web/dist
+**/*.test.ts
+**/*.test.tsx
+packages/*/test
+agent-transcripts
+.cursor

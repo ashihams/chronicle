@@ -11,7 +11,7 @@
 - [x] S6 web UI + /api/match
 - [ ] S6B Telegram bot baseline
 - [x] S7 evidence bundle + CLI verify
-- [ ] S8 Docker, compose, community watcher instructions
+- [x] S8 Docker, compose, community watcher instructions
 - [ ] S9 schema.md, friction.md, README, privacy tests, seed demo
 - [ ] Two distinct funded wallets, two networks, observations on live Tiramisu
 - [ ] 10-20 real public pages watched since 14 Oct (HUMAN)
@@ -158,6 +158,23 @@
 - `packages/cli` (`chronicle` bin via commander): `bundle <doc_id> [--api] [--out]`, `verify <file> [--rpc]`, `entity <key> [--rpc]`. Verify recomputes the hash, re-fetches each entry through `ArkivClient`, checks creator/owner/block/expiry/attributes/payload_sha256/tx (via `getEntity` tx hash or `createdEvents` in the creation block). States: PASS, FAIL, EXPIRED, DELETED, OWNER_CHANGED. Exit 0 / 1 / 2 as specified. Disclaimer printed at the end.
 - FakeArkivNetwork now keeps a `creationLog` that survives `__delete`, matching live `EntityCreated` logs so DELETED/EXPIRED verification can still prove the creating tx (Stage 1 probe e10).
 - New dependency: `commander` (listed in the stack table).
+
+### Stage 8
+
+- Docker images (build from repo root):
+  - `packages/watcher/Dockerfile` — community watcher (`node:20-slim`, poppler-utils, `pnpm deploy --prod --legacy`, uid 10001, `HEALTHCHECK` on `/health`, `ENTRYPOINT node dist/main.js`).
+  - `Dockerfile.app` — indexer + built web (poppler for `/api/match`); optional bot sources copied for a later entrypoint.
+  - `packages/demo-site/Dockerfile` — synthetic demo site on port 4000.
+- `docker-compose.yml`: `demo-site` (:4000), `app` (:8080), `watcher-a` (vantage `in-vps`, `ALLOW_DEMO=1` by default), optional `bot` profile (placeholder until Stage 6B). Watcher mounts `deploy/watchlist.docker.json` (demo URLs use `http://demo-site:4000`). Fake mode remains per-process across containers.
+- Production guard: with `NODE_ENV=production` and without `ALLOW_DEMO=1`, the watcher refuses enabled sources whose `notice_id` starts with `demo-` or whose `department` starts with `demo-dept`.
+- README section "Run a community watcher" with the exact `docker run` block (`ghcr.io/ashihams/chronicle-watcher:latest`), faucet steps, and same-machine vantage note.
+- GHCR: `.github/workflows/ghcr-watcher.yml` builds/pushes the watcher image on tags `v*` and `watcher-*`.
+- `ALLOW_DEMO` documented in `.env.example`.
+- HUMAN (unchanged): provision VPS 1 (India) for app + watcher-a, VPS 2 for watcher-b, domain + Caddy to 8080; keep up until 23 Oct.
+- Docker acceptance on this Windows host (16 Oct): `docker compose build` failed with Docker Desktop engine **read-only file system** / I/O errors while committing layers (daemon disk unhealthy). Images and compose files are in place; re-run `docker compose up --build` after repairing Docker Desktop (Settings → Troubleshoot → Clean / Restart, or reset the disk image), then log image size and cold-start time here:
+  - watcher image size: _(pending local docker)_
+  - app image size: _(pending local docker)_
+  - compose cold start to UI on :8080: _(pending local docker)_
 
 ## Cut list
 
