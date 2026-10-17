@@ -24,7 +24,7 @@
 
 - [x] S1 contradictions
 - [x] S2 stealth-removal
-- [ ] S3 PDF signature checks
+- [x] S3 PDF signature checks
 - [ ] S4 follow-and-alert
 - [ ] S5 verifier extras
 - [ ] S6 Tamil/Hindi
@@ -219,7 +219,13 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 - Watcher: archive `indexes[]` → `index_snapshot` entities (`index_id`, `index_mode`, `observed_at`, `link_count`, `links_sha256`; payload link list). Rolling indexes skipped. Written when link set hash changes.
 - Indexer: diff consecutive snapshots per creator; vanished docs → `delisted` (still 200), `stealth_removed` (404/410, no withdrawal title on index), or `declared_withdrawn` (withdrawal-style title appeared). Corroboration (2+ creators) raises severity. UI wording: "removed from listing without a withdrawal notice".
 
-- Stretch S3–S6: not started. Cut at freeze unless completed.
+### Stretch S3 (PDF signature / provenance)
+
+- Watcher `normalizePdf` runs `pdfsig` (unsigned if missing); writes `sig_status`, `sig_signer_org` (O= only), `pdf_producer`, `pdf_created_ts`.
+- Indexer: `sig_invalid` (severity 3) for `signed_invalid` / `signed_modified`; soft `metadata_inconsistent` (severity 1) for known online editors or CreationDate > printed_date + 30 days.
+- UI: "Signature intact" / neutral unsigned copy; never "authentic". Flag explanations avoid fraud/fake.
+
+- Stretch S4–S6: not started. Cut at freeze unless completed.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 

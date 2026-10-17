@@ -187,7 +187,7 @@ describe('buildObservationAttrs', () => {
         sourceKind: 'pdf',
         extras: {
           simhashHex: '0123456789abcdef',
-          sigStatus: 'valid',
+          sigStatus: 'signed_valid',
           sigSignerOrg: '  Demo   Signing Authority  ',
           pdfProducer: `Producer\u0000${'ü'.repeat(100)}`,
           pdfCreatedTs: 1_757_000_000,
@@ -195,7 +195,7 @@ describe('buildObservationAttrs', () => {
       }),
     );
     expect(attrs.simhash_hex).toBe('0123456789abcdef');
-    expect(attrs.sig_status).toBe('valid');
+    expect(attrs.sig_status).toBe('signed_valid');
     expect(attrs.sig_signer_org).toBe('Demo Signing Authority');
     expect(Buffer.byteLength(String(attrs.pdf_producer))).toBeLessThanOrEqual(128);
     expect(String(attrs.pdf_producer)).toMatch(/^Producer ü+$/);
@@ -214,7 +214,7 @@ describe('buildObservationAttrs', () => {
         amountPaise: 1,
         extras: {
           simhashHex: '0'.repeat(16),
-          sigStatus: 'valid',
+          sigStatus: 'signed_valid',
           sigSignerOrg: 'o',
           pdfProducer: 'p',
           pdfCreatedTs: 1,

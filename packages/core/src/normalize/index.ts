@@ -3,6 +3,7 @@ export { normalizeHtml, cleanTitle, MAX_TITLE_CHARS, type NormalizeHtmlOptions, 
 export {
   normalizePdf,
   parsePdfInfo,
+  execToolCapture,
   hasPdfHeader,
   execTool,
   PopplerMissingError,

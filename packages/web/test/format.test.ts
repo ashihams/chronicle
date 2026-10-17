@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flagExplanation, formatDay, shortHex, stateBadge } from '../src/format';
+import { flagExplanation, formatDay, shortHex, signatureWording, stateBadge } from '../src/format';
 
 describe('format helpers', () => {
   it('formats days and short hex', () => {
@@ -18,5 +18,16 @@ describe('format helpers', () => {
     expect(flagExplanation('contradiction')).not.toMatch(/fraud|fake/i);
     expect(flagExplanation('stealth_removed')).toMatch(/without a withdrawal notice/i);
     expect(flagExplanation('stealth_removed')).not.toMatch(/fraud|fake/i);
+    expect(flagExplanation('sig_invalid')).toMatch(/signature/i);
+    expect(flagExplanation('sig_invalid')).not.toMatch(/fraud|authentic/i);
+    expect(flagExplanation('metadata_inconsistent')).toMatch(/metadata/i);
+  });
+
+  it('wording for PDF signatures never says authentic', () => {
+    expect(signatureWording('signed_valid')).toBe('Signature intact');
+    expect(signatureWording('unsigned')).toMatch(/Many genuine circulars are unsigned/i);
+    expect(signatureWording('signed_valid')).not.toMatch(/authentic/i);
+    expect(signatureWording('unsigned')).not.toMatch(/authentic/i);
+    expect(signatureWording(null)).toBeNull();
   });
 });
