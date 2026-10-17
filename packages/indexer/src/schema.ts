@@ -109,7 +109,19 @@ export const IndexSnapshotPayloadSchema = z
   .catch({ links: [] });
 export type IndexSnapshotPayloadView = z.infer<typeof IndexSnapshotPayloadSchema>;
 
-export const MIRRORED_TYPES = ['doc', 'observation', 'index_snapshot'] as const;
+/** Stretch S5. */
+export const ForgeryReportAttrsSchema = z
+  .object({
+    type: z.literal('forgery_report'),
+    schema_v: z.literal(1),
+    norm_sha256: hex64,
+    reason_code: str,
+    real_source_url: str.optional(),
+  })
+  .passthrough();
+export type ForgeryReportAttrs = z.infer<typeof ForgeryReportAttrsSchema>;
+
+export const MIRRORED_TYPES = ['doc', 'observation', 'index_snapshot', 'forgery_report'] as const;
 export type MirroredType = (typeof MIRRORED_TYPES)[number];
 
 /** Why an entity is not mirrored, or null when its attributes are valid for its type. */
@@ -118,6 +130,7 @@ export function rejectReason(attrs: Attrs): string | null {
   if (type === 'observation') return issues(ObservationAttrsSchema.safeParse(attrs));
   if (type === 'doc') return issues(DocAttrsSchema.safeParse(attrs));
   if (type === 'index_snapshot') return issues(IndexSnapshotAttrsSchema.safeParse(attrs));
+  if (type === 'forgery_report') return issues(ForgeryReportAttrsSchema.safeParse(attrs));
   return `unsupported type ${String(type)}`;
 }
 

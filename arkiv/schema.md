@@ -4,7 +4,7 @@ Gate file for the Arkiv Global Tour Stop. Matches the code in `@chronicle/core` 
 
 ## Overview
 
-Chronicle writes only **doc** and **observation** entities to Arkiv (stretch may add `index_snapshot`). Writers are independent watcher wallets. The indexer mirrors entities into SQLite, derives versions and flags, and serves a read-only API. Derived rows are a cache: evidence is the on-chain entity set plus the evidence bundle.
+Chronicle writes **doc** and **observation** entities to Arkiv (stretch may add `index_snapshot` and `forgery_report`). Writers are independent watcher wallets. The indexer mirrors entities into SQLite, derives versions and flags, and serves a read-only API. Derived rows are a cache: evidence is the on-chain entity set plus the evidence bundle.
 
 Hard limits used everywhere:
 
@@ -85,7 +85,11 @@ A `text` change carries previous/new **hashes**, never body text.
 
 ### `index_snapshot` (stretch S2 only)
 
-Not written in the baseline. Planned attrs: `index_id`, `index_mode`, `observed_at`, `link_count`, `links_sha256`; payload `{ links: [{ doc_id, title<=120 }] }`.
+Attrs: `index_id`, `index_mode`, `observed_at`, `link_count`, `links_sha256`; payload `{ links: [{ doc_id, title<=120 }] }`.
+
+### `forgery_report` (stretch S5 only)
+
+Attrs: `norm_sha256`, `reason_code` (slug), optional `real_source_url` (≤128 bytes). Reporter is Arkiv `$creator` (not an attribute). Indexer `/api/match` returns distinct creator counts for the matched hash. Never stores personal data.
 
 ## Time semantics
 

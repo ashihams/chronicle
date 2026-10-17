@@ -74,6 +74,7 @@ describe('buildMatchResponse and matchNote', () => {
       result: 'no_match',
       match: null,
       note: 'No exact match. Treat as unverified. This does not mean it is forged.',
+      forgery_reports: { distinct_creators: 0, reason_codes: [], note: null },
     });
   });
 

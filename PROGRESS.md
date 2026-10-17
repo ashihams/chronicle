@@ -26,7 +26,7 @@
 - [x] S2 stealth-removal
 - [x] S3 PDF signature checks
 - [x] S4 follow-and-alert
-- [ ] S5 verifier extras
+- [x] S5 verifier extras
 - [ ] S6 Tamil/Hindi
 
 ## Decisions and notes
@@ -231,7 +231,13 @@ Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct).
 - Dispatcher polls `GET /api/docs?changed_since=` every 60s; UNCONFIRMED (severity ≥ 2, one watcher) then CONFIRMED (2+ creators on same `norm_sha256`); dedupe `(chat, doc, hash, stage)`; max 5 alerts/chat/hour. Never logs chat IDs.
 - Stage 6B verifier path still not wired (match/PDF); compose bot entrypoint now runs `node packages/bot/dist/main.js`.
 
-- Stretch S5–S6: not started. Cut at freeze unless completed.
+### Stretch S5 (verifier extras)
+
+- `forgery_report` entity mirrored; `/api/match` returns `forgery_reports.distinct_creators` + reason codes (reporter = `$creator`).
+- Watchers write `simhash_hex`; near-match when Hamming ≤ 3 → `similar_match` / label "similar, not identical".
+- Reply language: `lang=en|ta|hi` on match body/query; Verify page language select. Fixed note strings (S6 will fill payload summaries).
+
+- Stretch S6: not started. Cut at freeze unless completed.
 - Docker image size/startup numbers: pending local Docker Desktop repair (Stage 8).
 - Community Docker watcher joining live in the video: optional if image/GHCR ready in time.
 

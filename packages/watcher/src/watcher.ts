@@ -15,6 +15,7 @@ import {
   normalizePdf,
   ruleSeverity,
   sha256Hex,
+  simhashHex,
   type ArkivClient,
   type Config,
   type ExecTool,
@@ -82,12 +83,13 @@ interface NormalizedContent {
   normSha256: string;
   textExtracted: boolean;
   title: string | null;
-  /** Stretch S3 PDF provenance attrs; omitted for HTML. */
+  /** Stretch S3/S5 observation extras. */
   extras?: {
-    sigStatus: string;
-    sigSignerOrg: string | null;
-    pdfProducer: string | null;
-    pdfCreatedTs: number | null;
+    simhashHex?: string | null;
+    sigStatus?: string | null;
+    sigSignerOrg?: string | null;
+    pdfProducer?: string | null;
+    pdfCreatedTs?: number | null;
   };
 }
 
@@ -303,6 +305,7 @@ export class Watcher {
         textExtracted: pdf.textExtracted,
         title: null,
         extras: {
+          simhashHex: pdf.textExtracted ? simhashHex(pdf.text) : null,
           sigStatus: pdf.signature.status,
           sigSignerOrg: pdf.signature.signerOrg,
           pdfProducer: pdf.meta.producer,
@@ -311,7 +314,13 @@ export class Watcher {
       };
     }
     const html = normalizeHtml(decodeBody(f.bytes, f.contentType), { contentSelector: src.contentSelector });
-    return { text: html.text, normSha256: normHash(html.text), textExtracted: true, title: html.title };
+    return {
+      text: html.text,
+      normSha256: normHash(html.text),
+      textExtracted: true,
+      title: html.title,
+      extras: { simhashHex: simhashHex(html.text) },
+    };
   }
 
   /**
