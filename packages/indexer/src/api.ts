@@ -132,7 +132,17 @@ function docView(d: DocRow): Record<string, unknown> {
   };
 }
 
-function versionView(v: VersionRow): Record<string, unknown> {
+function versionView(v: VersionRow, db?: IndexerDb): Record<string, unknown> {
+  let summary_ta: string | null = null;
+  let summary_hi: string | null = null;
+  if (db !== undefined) {
+    const first = db.getEntity(v.firstEntityKey);
+    if (first !== null) {
+      const payload = ObservationPayloadSchema.parse(first.payload);
+      summary_ta = payload.summary_ta;
+      summary_hi = payload.summary_hi;
+    }
+  }
   return {
     normalizer_version: v.normalizerVersion,
     seq: v.seq,
@@ -145,6 +155,8 @@ function versionView(v: VersionRow): Record<string, unknown> {
     deadline_ts: v.deadlineTs,
     amount_paise: v.amountPaise,
     summary_en: v.summaryEn,
+    summary_ta,
+    summary_hi,
   };
 }
 
@@ -295,6 +307,8 @@ export function buildTimeline(
       prev_norm_sha256: e.attrs.prev_norm_sha256 ?? null,
       normalizer_version: e.attrs.normalizer_version ?? null,
       summary_en: payload.summary_en,
+      summary_ta: payload.summary_ta,
+      summary_hi: payload.summary_hi,
       changes: payload.changes,
       severity: e.attrs.severity ?? null,
       sig_status: e.attrs.sig_status ?? null,
@@ -491,7 +505,7 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
         last_change_ts: doc.lastChangeTs,
         removed: doc.currentState !== null && REMOVAL_STATES.has(doc.currentState as never),
       },
-      versions: o.db.versionsForDoc(docId).map(versionView),
+      versions: o.db.versionsForDoc(docId).map((v) => versionView(v, o.db)),
       flags: o.db.flagsForDoc(docId).map(flagView),
       observers: observersOf(obs).map((w) => ({ ...w, explorer_url: links.address(w.creator) })),
       observation_count: obs.length,

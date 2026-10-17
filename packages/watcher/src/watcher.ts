@@ -199,6 +199,8 @@ export class Watcher {
     let extractor = { model: 'none', confidence: 0 };
     let llmSeverity: number | null = null;
     let llmSummary: string | null = null;
+    let llmSummaryTa: string | null = null;
+    let llmSummaryHi: string | null = null;
 
     if ((state === 'first_seen' || state === 'changed') && content !== null) {
       const res = await this.opts.extractor.extract({
@@ -212,6 +214,8 @@ export class Watcher {
       extractor = { model: res.model, confidence: res.extraction.confidence };
       if (res.usedLlm) {
         llmSummary = res.extraction.summary_en;
+        llmSummaryTa = res.extraction.summary_ta;
+        llmSummaryHi = res.extraction.summary_hi;
         if (state === 'changed') llmSeverity = res.extraction.severity;
       }
     }
@@ -255,6 +259,8 @@ export class Watcher {
     const payload = buildObservationPayload({
       title,
       summaryEn: llmSummary ?? ruleSummary({ state, previousState: row?.lastState ?? null, changes, fields }),
+      summaryTa: llmSummaryTa,
+      summaryHi: llmSummaryHi,
       finalUrl: fetched.finalUrl,
       changes,
       extractor,
