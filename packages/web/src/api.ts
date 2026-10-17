@@ -99,6 +99,12 @@ export interface DocDetail {
     explorer_url: string;
   }[];
   observation_count: number;
+  provenance: {
+    sig_status: string | null;
+    sig_signer_org: string | null;
+    pdf_producer: string | null;
+    pdf_created_ts: number | null;
+  } | null;
 }
 
 export interface TimelineEvent {
@@ -125,7 +131,7 @@ export interface LiveChanges {
 }
 
 export interface MatchResponse {
-  result: 'exact_match' | 'no_match';
+  result: 'exact_match' | 'similar_match' | 'no_match';
   match: {
     doc_id: string;
     title: string | null;
@@ -137,8 +143,15 @@ export interface MatchResponse {
     observer_count: number;
     changes_since: { seq: number; summary_en: string | null; first_seen_ts: number }[];
     timeline_url: string;
+    hamming_distance?: number;
   } | null;
   note: string;
+  similar_label?: string;
+  forgery_reports: {
+    distinct_creators: number;
+    reason_codes: string[];
+    note: string | null;
+  };
 }
 
 export function fetchHealth(): Promise<Health> {
@@ -182,20 +195,21 @@ export function fetchChanges(field: 'deadline' | 'amount' | 'any', days = 30): P
   return getJson(`/api/arkiv/changes?days=${days}&field=${field}`);
 }
 
-export async function matchText(text: string): Promise<MatchResponse> {
+export async function matchText(text: string, lang: 'en' | 'ta' | 'hi' = 'en'): Promise<MatchResponse> {
   const res = await fetch('/api/match', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, lang }),
   });
   const body = (await res.json()) as MatchResponse & { error?: string; code?: string };
   if (!res.ok) throw new ApiError(body.error ?? 'Match failed', res.status, body.code ?? 'error');
   return body;
 }
 
-export async function matchFile(file: File): Promise<MatchResponse> {
+export async function matchFile(file: File, lang: 'en' | 'ta' | 'hi' = 'en'): Promise<MatchResponse> {
   const form = new FormData();
   form.append('file', file, file.name);
+  form.append('lang', lang);
   const res = await fetch('/api/match', { method: 'POST', body: form });
   const body = (await res.json()) as MatchResponse & { error?: string; code?: string };
   if (!res.ok) throw new ApiError(body.error ?? 'Match failed', res.status, body.code ?? 'error');

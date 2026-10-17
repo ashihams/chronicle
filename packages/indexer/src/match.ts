@@ -1,7 +1,8 @@
 import { sha256Hex } from '@chronicle/core';
 import type { DocRow, VersionRow } from './db.js';
+import { forgeryReportNote, localizedMatchNote, type ReplyLang } from './match-i18n.js';
 
-export type MatchResultKind = 'exact_match' | 'no_match';
+export type MatchResultKind = 'exact_match' | 'similar_match' | 'no_match';
 
 export interface MatchChange {
   seq: number;
@@ -20,12 +21,23 @@ export interface MatchHit {
   observer_count: number;
   changes_since: MatchChange[];
   timeline_url: string;
+  /** Present for similar_match. */
+  hamming_distance?: number;
+}
+
+export interface ForgeryReportSummary {
+  distinct_creators: number;
+  reason_codes: string[];
+  note: string | null;
 }
 
 export interface MatchResponse {
   result: MatchResultKind;
   match: MatchHit | null;
   note: string;
+  /** Stretch S5 label when result is similar_match. */
+  similar_label?: string;
+  forgery_reports: ForgeryReportSummary;
 }
 
 export interface VersionLookup {
@@ -33,24 +45,13 @@ export interface VersionLookup {
   doc: DocRow;
   /** Same normalizer version, ordered by seq. */
   siblings: VersionRow[];
+  hammingDistance?: number;
 }
 
-const NO_MATCH_NOTE = 'No exact match. Treat as unverified. This does not mean it is forged.';
-
-/**
- * Plain-language note for an exact hash match. Dates are UTC calendar days.
- */
-export function matchNote(hit: MatchHit, formatDay: (ts: number) => string = utcDay): string {
-  if (hit.status === 'current') {
-    return `Matches version ${hit.version_seq}, which is the current version.`;
-  }
-  const when = hit.superseded_at === null ? '' : ` on ${formatDay(hit.superseded_at)}`;
-  const current = hit.current_seq === null ? 'A later version' : `Version ${hit.current_seq}`;
-  return `Matches version ${hit.version_seq}, which was superseded${when}. ${current} is current.`;
-}
-
-function utcDay(ts: number): string {
-  return new Date(ts * 1000).toISOString().slice(0, 10);
+export interface BuildMatchOptions {
+  lang?: ReplyLang;
+  forgery?: { distinctCreators: number; reasonCodes: string[] };
+  similar?: boolean;
 }
 
 /**
@@ -58,9 +59,23 @@ function utcDay(ts: number): string {
  * When several docs match, the one whose matched version is current wins; otherwise the
  * highest matched `seq` wins, then the lower `doc_id`.
  */
-export function buildMatchResponse(lookups: VersionLookup[]): MatchResponse {
+export function buildMatchResponse(lookups: VersionLookup[], opts: BuildMatchOptions = {}): MatchResponse {
+  const lang = opts.lang ?? 'en';
+  const forgeryCreators = opts.forgery?.distinctCreators ?? 0;
+  const forgeryCodes = opts.forgery?.reasonCodes ?? [];
+  const forgery_reports: ForgeryReportSummary = {
+    distinct_creators: forgeryCreators,
+    reason_codes: forgeryCodes,
+    note: forgeryReportNote(forgeryCreators, lang),
+  };
+
   if (lookups.length === 0) {
-    return { result: 'no_match', match: null, note: NO_MATCH_NOTE };
+    return {
+      result: 'no_match',
+      match: null,
+      note: localizedMatchNote('no_match', null, lang),
+      forgery_reports,
+    };
   }
   const ranked = [...lookups].sort((a, b) => {
     const ac = a.version.status === 'current' ? 1 : 0;
@@ -75,6 +90,7 @@ export function buildMatchResponse(lookups: VersionLookup[]): MatchResponse {
   const changes_since: MatchChange[] = best.siblings
     .filter((v) => v.seq > best.version.seq && (current === null || v.seq <= current.seq))
     .map((v) => ({ seq: v.seq, summary_en: v.summaryEn, first_seen_ts: v.firstSeenTs }));
+  const result: MatchResultKind = opts.similar === true ? 'similar_match' : 'exact_match';
   const hit: MatchHit = {
     doc_id: best.doc.docId,
     title: best.doc.title,
@@ -86,8 +102,20 @@ export function buildMatchResponse(lookups: VersionLookup[]): MatchResponse {
     observer_count: best.version.observerCount,
     changes_since,
     timeline_url: `/docs/${best.doc.docId}`,
+    ...(best.hammingDistance !== undefined ? { hamming_distance: best.hammingDistance } : {}),
   };
-  return { result: 'exact_match', match: hit, note: matchNote(hit) };
+  return {
+    result,
+    match: hit,
+    note: localizedMatchNote(result, hit, lang),
+    ...(result === 'similar_match' ? { similar_label: 'similar, not identical' } : {}),
+    forgery_reports,
+  };
+}
+
+/** English note for an exact-hash hit (tests and callers that do not pass `lang`). */
+export function matchNote(hit: MatchHit, formatDay?: (ts: number) => string): string {
+  return localizedMatchNote('exact_match', hit, 'en', formatDay);
 }
 
 /** Content hash of already-normalized text (same as `norm_sha256` on observations). */

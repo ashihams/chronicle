@@ -191,8 +191,9 @@ function DocsTable({ items }: { items: DocListItem[] }): React.ReactElement {
         </thead>
         <tbody>
           {items.map((d) => {
+            const hasContradiction = d.open_flags.kinds.includes('contradiction');
             const disputed = d.open_flags.kinds.includes('vantage_disagreement');
-            const badge = stateBadge(d.current_state, disputed);
+            const badge = stateBadge(d.current_state, disputed, hasContradiction);
             return (
               <tr key={d.doc_id} className="border-b border-white/5 transition hover:bg-white/[0.03]">
                 <td className="py-3.5 pr-3">

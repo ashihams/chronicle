@@ -1,14 +1,19 @@
 import { sha256Of, type ArkivClient, type ArkivEntityRecord, type Attrs, type Where } from '@chronicle/core';
 import type { Logger } from 'pino';
 import type { EntityRow, IndexerDb } from './db.js';
+import { CONTRADICTION_FLAG_KINDS, pagePdfContradiction, type SourceSnapshot } from './contradiction.js';
 import { DERIVED_FLAG_KINDS, deriveDoc, type ObsInput } from './derive.js';
 import {
   DocAttrsSchema,
   DocPayloadSchema,
+  IndexSnapshotAttrsSchema,
+  IndexSnapshotPayloadSchema,
   ObservationAttrsSchema,
   ObservationPayloadSchema,
   rejectReason,
 } from './schema.js';
+import { PDF_PROVENANCE_FLAG_KINDS, pdfProvenanceFlags } from './pdf-provenance.js';
+import { STEALTH_FLAG_KINDS, stealthFlagsFromSnapshots, type IndexSnapshotView } from './stealth.js';
 
 /** Observations are re-queried from this far before the newest `observed_at` already synced. */
 export const OBSERVED_AT_OVERLAP_SECONDS = 86400;
@@ -127,6 +132,7 @@ export class Indexer {
       ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'doc' }])),
       ...(await this.queryAll(obsWhere)),
       ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'index_snapshot' }])),
+      ...(await this.queryAll([{ attr: 'type', op: 'eq', value: 'forgery_report' }])),
     ];
 
     let added = 0;
@@ -243,12 +249,14 @@ export class Indexer {
       backdateSeconds: this.settings.backdateDays * 86400,
       clockSkewSeconds: this.settings.clockSkewSeconds,
     });
+    const provenance = pdfProvenanceFlags(obs);
     this.db.transaction(() => {
       this.db.replaceVersions(
         docId,
         derived.versions.map((v) => ({ ...v, docId })),
       );
       this.db.reconcileFlags(docId, DERIVED_FLAG_KINDS, derived.flags, nowTs);
+      this.db.reconcileFlags(docId, PDF_PROVENANCE_FLAG_KINDS, provenance, nowTs);
       this.db.setDocStatus(docId, derived.status);
     });
   }
@@ -256,7 +264,117 @@ export class Indexer {
   recomputeAll(nowTs: number): number {
     const ids = this.db.allDocIds();
     for (const id of ids) this.recompute(id, nowTs);
+    this.recomputeContradictions(nowTs);
+    this.recomputeStealthRemovals(nowTs);
     return ids.length;
+  }
+
+  /**
+   * Stretch S2: diff consecutive `index_snapshot` entities per creator; flag vanished
+   * docs as delisted / stealth_removed / declared_withdrawn.
+   */
+  recomputeStealthRemovals(nowTs: number): void {
+    const views: IndexSnapshotView[] = [];
+    for (const e of this.db.entitiesOfType('index_snapshot')) {
+      const attrs = attrsOf(IndexSnapshotAttrsSchema, e.attrs);
+      if (attrs === null) continue;
+      const payload = IndexSnapshotPayloadSchema.parse(e.payload ?? {});
+      views.push({
+        key: e.key,
+        creator: e.creator,
+        indexId: attrs.index_id,
+        createdBlock: e.createdBlock,
+        links: payload.links.map((l) => ({ docId: l.doc_id, title: l.title })),
+      });
+    }
+    const desiredByDoc = stealthFlagsFromSnapshots(views, (docId) => this.latestObsHint(docId));
+    const allDocIds = new Set([...this.db.allDocIds(), ...desiredByDoc.keys()]);
+    for (const docId of allDocIds) {
+      const desired = desiredByDoc.get(docId);
+      this.db.reconcileFlags(docId, STEALTH_FLAG_KINDS, desired === undefined ? [] : [desired], nowTs);
+    }
+  }
+
+  private latestObsHint(docId: string): { state: string | null; httpStatus: number | null; title: string | null } {
+    let best: EntityRow | null = null;
+    for (const e of this.db.observationsForDoc(docId)) {
+      if (e.status !== 'live' && e.status !== 'expired') continue;
+      if (
+        best === null ||
+        e.createdBlock > best.createdBlock ||
+        (e.createdBlock === best.createdBlock && e.key > best.key)
+      ) {
+        best = e;
+      }
+    }
+    if (best === null) return { state: null, httpStatus: null, title: null };
+    const attrs = attrsOf(ObservationAttrsSchema, best.attrs);
+    const title =
+      best.payload !== null && typeof best.payload === 'object' && 'title' in best.payload
+        ? typeof (best.payload as { title: unknown }).title === 'string'
+          ? (best.payload as { title: string }).title
+          : null
+        : null;
+    return {
+      state: attrs?.state ?? null,
+      httpStatus: attrs?.http_status ?? null,
+      title,
+    };
+  }
+
+  /**
+   * Stretch S1: for each notice_id with both page and PDF docs, flag when latest
+   * deadline_ts / amount_paise disagree. Flags are mirrored onto both docs.
+   */
+  recomputeContradictions(nowTs: number): void {
+    for (const [, docs] of this.db.docsByNoticeId()) {
+      const pageDoc = docs.find((d) => d.sourceKind === 'page');
+      const pdfDoc = docs.find((d) => d.sourceKind === 'pdf');
+      const page = pageDoc !== undefined ? this.latestSourceSnapshot(pageDoc.docId, 'page') : null;
+      const pdf = pdfDoc !== undefined ? this.latestSourceSnapshot(pdfDoc.docId, 'pdf') : null;
+      const flag = page !== null && pdf !== null ? pagePdfContradiction(page, pdf) : null;
+      const desired = flag === null ? [] : [flag];
+      for (const d of docs) {
+        if (d.sourceKind === 'page' || d.sourceKind === 'pdf') {
+          this.db.reconcileFlags(d.docId, CONTRADICTION_FLAG_KINDS, desired, nowTs);
+        }
+      }
+    }
+  }
+
+  private latestSourceSnapshot(docId: string, sourceKind: 'page' | 'pdf'): SourceSnapshot | null {
+    const CONTENT = new Set(['first_seen', 'present', 'changed']);
+    let best: ObsInput | null = null;
+    for (const e of this.db.observationsForDoc(docId)) {
+      if (e.status !== 'live' && e.status !== 'expired') continue;
+      const attrs = attrsOf(ObservationAttrsSchema, e.attrs);
+      if (attrs === null || !CONTENT.has(attrs.state) || attrs.norm_sha256 === undefined) continue;
+      const o: ObsInput = {
+        key: e.key,
+        creator: e.creator,
+        createdBlock: e.createdBlock,
+        createdTs: e.createdTs,
+        status: e.status,
+        attrs,
+        summaryEn: null,
+      };
+      if (
+        best === null ||
+        o.createdBlock > best.createdBlock ||
+        (o.createdBlock === best.createdBlock && o.key > best.key)
+      ) {
+        best = o;
+      }
+    }
+    if (best === null) return null;
+    return {
+      docId,
+      sourceKind,
+      key: best.key,
+      deadlineTs: best.attrs.deadline_ts ?? null,
+      deadlineDate: best.attrs.deadline_date ?? null,
+      amountPaise: best.attrs.amount_paise ?? null,
+    };
   }
 
   /** Section 5.2: re-reads every live entity and records expiry, deletion, modification and transfers. */

@@ -81,7 +81,47 @@ export const DocPayloadSchema = z
   .catch({ title: null, registered_vantage: null, source_url: null });
 export type DocPayloadView = z.infer<typeof DocPayloadSchema>;
 
-export const MIRRORED_TYPES = ['doc', 'observation', 'index_snapshot'] as const;
+/** Stretch S2. */
+export const IndexSnapshotAttrsSchema = z
+  .object({
+    type: z.literal('index_snapshot'),
+    schema_v: z.literal(1),
+    index_id: str,
+    index_mode: str,
+    observed_at: ts,
+    link_count: z.number().int().nonnegative(),
+    links_sha256: hex64,
+  })
+  .passthrough();
+export type IndexSnapshotAttrs = z.infer<typeof IndexSnapshotAttrsSchema>;
+
+export const IndexSnapshotPayloadSchema = z
+  .object({
+    links: z
+      .array(
+        z.object({
+          doc_id: hex64,
+          title: z.string().max(120),
+        }),
+      )
+      .default([]),
+  })
+  .catch({ links: [] });
+export type IndexSnapshotPayloadView = z.infer<typeof IndexSnapshotPayloadSchema>;
+
+/** Stretch S5. */
+export const ForgeryReportAttrsSchema = z
+  .object({
+    type: z.literal('forgery_report'),
+    schema_v: z.literal(1),
+    norm_sha256: hex64,
+    reason_code: str,
+    real_source_url: str.optional(),
+  })
+  .passthrough();
+export type ForgeryReportAttrs = z.infer<typeof ForgeryReportAttrsSchema>;
+
+export const MIRRORED_TYPES = ['doc', 'observation', 'index_snapshot', 'forgery_report'] as const;
 export type MirroredType = (typeof MIRRORED_TYPES)[number];
 
 /** Why an entity is not mirrored, or null when its attributes are valid for its type. */
@@ -89,7 +129,8 @@ export function rejectReason(attrs: Attrs): string | null {
   const type = attrs.type;
   if (type === 'observation') return issues(ObservationAttrsSchema.safeParse(attrs));
   if (type === 'doc') return issues(DocAttrsSchema.safeParse(attrs));
-  if (type === 'index_snapshot') return attrs.schema_v === 1 ? null : 'schema_v must be 1';
+  if (type === 'index_snapshot') return issues(IndexSnapshotAttrsSchema.safeParse(attrs));
+  if (type === 'forgery_report') return issues(ForgeryReportAttrsSchema.safeParse(attrs));
   return `unsupported type ${String(type)}`;
 }
 

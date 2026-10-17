@@ -15,6 +15,7 @@ import {
   normalizePdf,
   ruleSeverity,
   sha256Hex,
+  simhashHex,
   type ArkivClient,
   type Config,
   type ExecTool,
@@ -82,6 +83,14 @@ interface NormalizedContent {
   normSha256: string;
   textExtracted: boolean;
   title: string | null;
+  /** Stretch S3/S5 observation extras. */
+  extras?: {
+    simhashHex?: string | null;
+    sigStatus?: string | null;
+    sigSignerOrg?: string | null;
+    pdfProducer?: string | null;
+    pdfCreatedTs?: number | null;
+  };
 }
 
 function decodeBody(bytes: Uint8Array, contentType: string | null): string {
@@ -241,6 +250,7 @@ export class Watcher {
       deadlineDate: contentFields?.deadline_date ?? null,
       amountPaise: contentFields?.amount_paise ?? null,
       severity,
+      extras: content?.extras,
     });
     const payload = buildObservationPayload({
       title,
@@ -289,10 +299,28 @@ export class Watcher {
         return { text: '', normSha256: sha256Hex(f.bytes), textExtracted: false, title: null };
       }
       const pdf = await normalizePdf(f.bytes, this.opts.pdfExec ? { exec: this.opts.pdfExec } : {});
-      return { text: pdf.text, normSha256: pdf.normSha256, textExtracted: pdf.textExtracted, title: null };
+      return {
+        text: pdf.text,
+        normSha256: pdf.normSha256,
+        textExtracted: pdf.textExtracted,
+        title: null,
+        extras: {
+          simhashHex: pdf.textExtracted ? simhashHex(pdf.text) : null,
+          sigStatus: pdf.signature.status,
+          sigSignerOrg: pdf.signature.signerOrg,
+          pdfProducer: pdf.meta.producer,
+          pdfCreatedTs: pdf.meta.creationTs,
+        },
+      };
     }
     const html = normalizeHtml(decodeBody(f.bytes, f.contentType), { contentSelector: src.contentSelector });
-    return { text: html.text, normSha256: normHash(html.text), textExtracted: true, title: html.title };
+    return {
+      text: html.text,
+      normSha256: normHash(html.text),
+      textExtracted: true,
+      title: html.title,
+      extras: { simhashHex: simhashHex(html.text) },
+    };
   }
 
   /**

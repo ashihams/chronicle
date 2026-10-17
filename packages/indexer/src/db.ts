@@ -408,6 +408,18 @@ export class IndexerDb {
     ).map(toEntity);
   }
 
+  /** Live or expired entities of a given type (chain order). */
+  entitiesOfType(type: string): EntityRow[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT * FROM entities WHERE type = ? AND status IN ('live','expired')
+           ORDER BY created_block, key`,
+        )
+        .all(type) as RawEntity[]
+    ).map(toEntity);
+  }
+
   docEntities(docId: string): EntityRow[] {
     return (
       this.db
@@ -444,6 +456,21 @@ export class IndexerDb {
     return (this.db.prepare('SELECT doc_id FROM docs ORDER BY doc_id').all() as { doc_id: string }[]).map(
       (r) => r.doc_id,
     );
+  }
+
+  /** Docs that share a notice_id, grouped for stretch contradiction checks. */
+  docsByNoticeId(): Map<string, DocRow[]> {
+    const rows = (
+      this.db.prepare('SELECT * FROM docs WHERE notice_id IS NOT NULL ORDER BY notice_id, doc_id').all() as RawDoc[]
+    ).map(toDoc);
+    const map = new Map<string, DocRow[]>();
+    for (const d of rows) {
+      if (d.noticeId === null) continue;
+      const list = map.get(d.noticeId) ?? [];
+      list.push(d);
+      map.set(d.noticeId, list);
+    }
+    return map;
   }
 
   upsertDoc(d: Omit<DocRow, 'currentState' | 'currentSeq' | 'lastSeenTs' | 'lastChangeTs'>): void {
@@ -573,6 +600,50 @@ export class IndexerDb {
     )
       .filter((r): r is { doc_id: string; norm_sha256: string | null } => typeof r.doc_id === 'string')
       .map((r) => ({ docId: r.doc_id, normSha256: r.norm_sha256 }));
+  }
+
+  /** Stretch S5: observations that carry a 16-hex `simhash_hex` and a content hash. */
+  observationsWithSimhash(): { normSha256: string; simhashHex: string }[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT json_extract(attrs_json,'$.norm_sha256') AS norm_sha256,
+                  json_extract(attrs_json,'$.simhash_hex') AS simhash_hex
+           FROM entities
+           WHERE type = 'observation'
+             AND json_extract(attrs_json,'$.simhash_hex') IS NOT NULL
+             AND json_extract(attrs_json,'$.norm_sha256') IS NOT NULL`,
+        )
+        .all() as { norm_sha256: string | null; simhash_hex: string | null }[]
+    )
+      .filter(
+        (r): r is { norm_sha256: string; simhash_hex: string } =>
+          typeof r.norm_sha256 === 'string' &&
+          typeof r.simhash_hex === 'string' &&
+          /^[0-9a-f]{16}$/.test(r.simhash_hex) &&
+          /^[0-9a-f]{64}$/.test(r.norm_sha256),
+      )
+      .map((r) => ({ normSha256: r.norm_sha256, simhashHex: r.simhash_hex }));
+  }
+
+  /** Stretch S5: distinct `$creator` count and reason codes for a content hash. */
+  forgeryReportStats(normSha256: string): { distinctCreators: number; reasonCodes: string[] } {
+    const rows = this.db
+      .prepare(
+        `SELECT creator, json_extract(attrs_json,'$.reason_code') AS reason_code
+         FROM entities
+         WHERE type = 'forgery_report'
+           AND status IN ('live','expired')
+           AND json_extract(attrs_json,'$.norm_sha256') = ?`,
+      )
+      .all(normSha256) as { creator: string; reason_code: string | null }[];
+    const creators = new Set<string>();
+    const codes = new Set<string>();
+    for (const r of rows) {
+      creators.add(r.creator);
+      if (typeof r.reason_code === 'string' && r.reason_code.length > 0) codes.add(r.reason_code);
+    }
+    return { distinctCreators: creators.size, reasonCodes: [...codes].sort() };
   }
 
   // ---- flags ------------------------------------------------------------------------------

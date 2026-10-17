@@ -9,5 +9,11 @@ export * from './extract.js';
 export * from './heuristic.js';
 export * from './llm.js';
 export * from './observation.js';
+export * from './index-links.js';
+export * from './index-snapshot.js';
+export * from './pdf-sig.js';
+export * from './simhash.js';
+export * from './forgery-report.js';
 export * from './bundle.js';
 export * from './arkiv/index.js';
+

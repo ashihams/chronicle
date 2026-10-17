@@ -21,6 +21,7 @@ import { buildEvidenceBundle } from './bundle-build.js';
 import type { DocRow, EntityRow, FlagRow, IndexerDb, VersionRow } from './db.js';
 import { STATE_KEYS } from './indexer.js';
 import { explorerLinks, RateLimiter, resolveStatic } from './http-util.js';
+import { parseReplyLang } from './match-i18n.js';
 import { lookupMatch } from './match-lookup.js';
 import { ObservationAttrsSchema, ObservationPayloadSchema, rejectReason } from './schema.js';
 
@@ -160,6 +161,36 @@ function flagView(f: FlagRow): Record<string, unknown> {
   };
 }
 
+/** Latest observation that carries PDF provenance attrs (stretch S3). */
+function latestPdfProvenance(obs: EntityRow[]): {
+  sig_status: string | null;
+  sig_signer_org: string | null;
+  pdf_producer: string | null;
+  pdf_created_ts: number | null;
+} | null {
+  let best: EntityRow | null = null;
+  for (const e of obs) {
+    if (e.status !== 'live' && e.status !== 'expired') continue;
+    if (e.attrs.sig_status === undefined && e.attrs.pdf_producer === undefined && e.attrs.pdf_created_ts === undefined) {
+      continue;
+    }
+    if (
+      best === null ||
+      e.createdBlock > best.createdBlock ||
+      (e.createdBlock === best.createdBlock && e.key > best.key)
+    ) {
+      best = e;
+    }
+  }
+  if (best === null) return null;
+  return {
+    sig_status: typeof best.attrs.sig_status === 'string' ? best.attrs.sig_status : null,
+    sig_signer_org: typeof best.attrs.sig_signer_org === 'string' ? best.attrs.sig_signer_org : null,
+    pdf_producer: typeof best.attrs.pdf_producer === 'string' ? best.attrs.pdf_producer : null,
+    pdf_created_ts: typeof best.attrs.pdf_created_ts === 'number' ? best.attrs.pdf_created_ts : null,
+  };
+}
+
 function mirrorView(e: EntityRow): Record<string, unknown> {
   return {
     key: e.key,
@@ -266,6 +297,10 @@ export function buildTimeline(
       summary_en: payload.summary_en,
       changes: payload.changes,
       severity: e.attrs.severity ?? null,
+      sig_status: e.attrs.sig_status ?? null,
+      sig_signer_org: e.attrs.sig_signer_org ?? null,
+      pdf_producer: e.attrs.pdf_producer ?? null,
+      pdf_created_ts: e.attrs.pdf_created_ts ?? null,
       entity_status: e.status,
       explorer_url: links.entity(e.key),
       tx_url: e.txHash === null ? null : links.tx(e.txHash),
@@ -460,6 +495,7 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
       flags: o.db.flagsForDoc(docId).map(flagView),
       observers: observersOf(obs).map((w) => ({ ...w, explorer_url: links.address(w.creator) })),
       observation_count: obs.length,
+      provenance: latestPdfProvenance(obs),
     };
   });
 
@@ -544,7 +580,13 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
     return liveQuery(reply, [{ attr: 'type', op: 'eq', value: 'observation' }], q, { creator: address });
   });
 
-  const matchTextBody = z.object({ text: z.string().min(1, 'text must not be empty').max(2_000_000) }).strict();
+  const matchTextBody = z
+    .object({
+      text: z.string().min(1, 'text must not be empty').max(2_000_000),
+      lang: z.enum(['en', 'ta', 'hi']).optional(),
+    })
+    .strict();
+  const matchLangQuery = z.object({ lang: z.enum(['en', 'ta', 'hi']).optional() }).strict();
 
   app.get('/api/bundle/:docId', async (req, reply) => {
     const { docId } = parse(docIdParam, req.params);
@@ -565,10 +607,13 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
    * hashes it, and looks up mirrored versions. The body is never logged or stored in SQLite.
    */
   app.post('/api/match', async (req) => {
+    const qLang = matchLangQuery.safeParse(req.query);
+    const langFromQuery = qLang.success ? qLang.data.lang : undefined;
     const ctype = req.headers['content-type'] ?? '';
     if (ctype.includes('multipart/form-data')) {
       let file: { buffer: Buffer; filename: string; mimetype: string } | null = null;
       let textField: string | undefined;
+      let langField: string | undefined;
       try {
         for await (const part of req.parts()) {
           if (part.type === 'file') {
@@ -577,6 +622,8 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
             file = { buffer, filename: part.filename, mimetype: part.mimetype };
           } else if (part.fieldname === 'text' && typeof part.value === 'string') {
             textField = part.value;
+          } else if (part.fieldname === 'lang' && typeof part.value === 'string') {
+            langField = part.value;
           }
         }
       } catch (err) {
@@ -587,24 +634,39 @@ export async function buildApi(o: ApiOptions): Promise<FastifyInstance> {
         }
         throw new ApiError(400, 'bad_request', 'Could not read multipart body');
       }
+      const lang = parseReplyLang(langField ?? langFromQuery);
       if (file !== null) {
-        return matchPdf(file.buffer, o);
+        return matchPdf(file.buffer, o, lang);
       }
       if (textField !== undefined) {
         const { text } = parse(matchTextBody, { text: textField });
-        return lookupMatch(o.db, { normSha256: normHash(normalizeText(text)) });
+        const normalized = normalizeText(text);
+        return lookupMatch(o.db, {
+          normSha256: normHash(normalized),
+          normalizedText: normalized,
+          lang,
+        });
       }
       throw new ApiError(400, 'bad_request', 'multipart body must include file or text');
     }
 
     const body = parse(matchTextBody, req.body);
-    return lookupMatch(o.db, { normSha256: normHash(normalizeText(body.text)) });
+    const normalized = normalizeText(body.text);
+    return lookupMatch(o.db, {
+      normSha256: normHash(normalized),
+      normalizedText: normalized,
+      lang: parseReplyLang(body.lang ?? langFromQuery),
+    });
   });
 
   return app;
 }
 
-async function matchPdf(bytes: Buffer, o: ApiOptions): Promise<ReturnType<typeof lookupMatch>> {
+async function matchPdf(
+  bytes: Buffer,
+  o: ApiOptions,
+  lang: ReturnType<typeof parseReplyLang> = 'en',
+): Promise<ReturnType<typeof lookupMatch>> {
   if (bytes.byteLength === 0) throw new ApiError(400, 'bad_request', 'Empty file');
   if (bytes.byteLength > Math.max(1, o.maxFileMb ?? 10) * 1024 * 1024) {
     throw new ApiError(413, 'payload_too_large', `PDF must be at most ${o.maxFileMb ?? 10} MB`);
@@ -614,7 +676,12 @@ async function matchPdf(bytes: Buffer, o: ApiOptions): Promise<ReturnType<typeof
   const rawSha256 = sha256Hex(u8);
   try {
     const pdf = await normalizePdf(u8, o.pdfExec !== undefined ? { exec: o.pdfExec } : {});
-    return lookupMatch(o.db, { normSha256: pdf.normSha256, rawSha256 });
+    return lookupMatch(o.db, {
+      normSha256: pdf.normSha256,
+      rawSha256,
+      normalizedText: pdf.textExtracted ? pdf.text : undefined,
+      lang,
+    });
   } catch (err) {
     if (err instanceof PopplerMissingError) {
       throw new ApiError(503, 'poppler_missing', 'PDF tools are not installed on this server');

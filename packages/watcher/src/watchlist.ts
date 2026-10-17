@@ -26,7 +26,8 @@ const IndexSchema = z
   .object({
     index_id: z.string().regex(ID_RE),
     url: z.string().min(1),
-    mode: z.string().min(1),
+    /** `archive` is snapshotted (stretch S2); `rolling` is skipped. */
+    mode: z.enum(['archive', 'rolling']),
     link_selector: z.string().min(1),
     max_pages: z.number().int().positive(),
   })
@@ -185,4 +186,11 @@ export function enabledSources(wl: Watchlist, defaultPollHours: number): Watched
         };
       }),
     );
+}
+
+/** Stretch S2: archive indexes only (rolling listings are not snapshotted). */
+export type WatchedIndex = Watchlist['indexes'][number];
+
+export function archiveIndexes(wl: Watchlist): WatchedIndex[] {
+  return wl.indexes.filter((ix) => ix.mode === 'archive');
 }

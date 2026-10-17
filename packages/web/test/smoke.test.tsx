@@ -209,12 +209,14 @@ describe('web smoke', () => {
               timeline_url: `/docs/${DOC_ID}`,
             },
             note: 'Matches version 1, which is the current version.',
+            forgery_reports: { distinct_creators: 0, reason_codes: [], note: null },
           });
         }
         return json({
           result: 'no_match',
           match: null,
           note: 'No exact match. Treat as unverified. This does not mean it is forged.',
+          forgery_reports: { distinct_creators: 0, reason_codes: [], note: null },
         });
       }),
     );
