@@ -1,9 +1,19 @@
-# Local stack: demo site, indexer+web, and watcher-a.
-#   docker compose up --build
-# UI: http://localhost:8080   demo: http://localhost:4000
+# Live-first stack: demo site, indexer+web, watcher-a, optional watcher-b, optional Caddy.
 #
-# Fake mode is per-process (watcher and indexer do not share an in-memory chain).
-# For a shared chain use ARKIV_MODE=live with funded keys in .env, or `pnpm dev:fake` on the host.
+# Local (no HTTPS):
+#   docker compose up --build
+#   UI http://localhost:8080  demo http://localhost:4000
+#
+# Azure / public HTTPS (see deploy/AZURE.md):
+#   SITE_ADDRESS=chronicle-demo.<region>.cloudapp.azure.com
+#   APP_PUBLISH=127.0.0.1:8080 DEMO_PUBLISH=127.0.0.1:4000
+#   docker compose --profile https up -d --build demo-site app watcher-a caddy
+#
+# Watcher B is profile-gated (run on a different network):
+#   docker compose --profile watcher-b up -d watcher-b
+#
+# Default ARKIV_MODE is live. Fake cannot share a chain across containers
+# (use `pnpm dev:fake` for a single-process fake demo).
 
 services:
   demo-site:
@@ -11,7 +21,7 @@ services:
       context: .
       dockerfile: packages/demo-site/Dockerfile
     ports:
-      - '4000:4000'
+      - '${DEMO_PUBLISH:-4000}:4000'
     environment:
       DEMO_PORT: '4000'
       DEMO_ADMIN_TOKEN: ${DEMO_ADMIN_TOKEN:-change-me}
@@ -21,14 +31,14 @@ services:
       context: .
       dockerfile: Dockerfile.app
     ports:
-      - '8080:8080'
+      - '${APP_PUBLISH:-8080}:8080'
     env_file:
       - path: .env
         required: false
     environment:
       PORT: '8080'
       INDEXER_DB_PATH: /data/indexer.db
-      ARKIV_MODE: ${ARKIV_MODE:-fake}
+      ARKIV_MODE: ${ARKIV_MODE:-live}
       ARKIV_CHAIN_ID: ${ARKIV_CHAIN_ID:-7738577}
       ARKIV_RPC_HTTP: ${ARKIV_RPC_HTTP:-https://rpc.tiramisu.db-chain.testnet.arkiv.network}
       ARKIV_RPC_WS: ${ARKIV_RPC_WS:-wss://rpc.tiramisu.db-chain.testnet.arkiv.network}
@@ -49,24 +59,74 @@ services:
         required: false
     environment:
       NODE_ENV: production
-      ALLOW_DEMO: ${ALLOW_DEMO:-1}
+      # Default 0 on public hosts; set ALLOW_DEMO=1 in .env only while recording.
+      ALLOW_DEMO: ${ALLOW_DEMO:-0}
       VANTAGE: in-vps
       WATCHLIST_PATH: /app/watchlist.json
       DATA_DIR: /data/watcher-a
       WATCHER_HEALTH_PORT: '8081'
-      ARKIV_MODE: ${ARKIV_MODE:-fake}
+      ARKIV_MODE: ${ARKIV_MODE:-live}
       ARKIV_CHAIN_ID: ${ARKIV_CHAIN_ID:-7738577}
       ARKIV_RPC_HTTP: ${ARKIV_RPC_HTTP:-https://rpc.tiramisu.db-chain.testnet.arkiv.network}
       ARKIV_RPC_WS: ${ARKIV_RPC_WS:-wss://rpc.tiramisu.db-chain.testnet.arkiv.network}
-      REQUEST_DELAY_MS_PER_HOST: ${REQUEST_DELAY_MS_PER_HOST:-1000}
+      REQUEST_DELAY_MS_PER_HOST: ${REQUEST_DELAY_MS_PER_HOST:-5000}
       WATCHER_PRIVATE_KEY: ${WATCHER_PRIVATE_KEY:-}
+      USER_AGENT: ${USER_AGENT:-ChronicleWatcher/1.0}
     volumes:
       - ./data:/data
-      # compose uses demo-site hostname; repo-root watchlist.json keeps localhost for host runs
       - ./deploy/watchlist.docker.json:/app/watchlist.json:ro
     ports:
-      - '8081:8081'
+      - '${WATCHER_A_PUBLISH:-8081}:8081'
     depends_on:
+      - demo-site
+
+  watcher-b:
+    profiles: ['watcher-b']
+    build:
+      context: .
+      dockerfile: packages/watcher/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      ALLOW_DEMO: ${ALLOW_DEMO:-0}
+      VANTAGE: eu-vps
+      WATCHLIST_PATH: /app/watchlist.json
+      DATA_DIR: /data/watcher-b
+      WATCHER_HEALTH_PORT: '8082'
+      ARKIV_MODE: ${ARKIV_MODE:-live}
+      ARKIV_CHAIN_ID: ${ARKIV_CHAIN_ID:-7738577}
+      ARKIV_RPC_HTTP: ${ARKIV_RPC_HTTP:-https://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      ARKIV_RPC_WS: ${ARKIV_RPC_WS:-wss://rpc.tiramisu.db-chain.testnet.arkiv.network}
+      REQUEST_DELAY_MS_PER_HOST: ${REQUEST_DELAY_MS_PER_HOST:-5000}
+      WATCHER_PRIVATE_KEY: ${WATCHER_B_PRIVATE_KEY:-}
+      USER_AGENT: ${USER_AGENT:-ChronicleWatcher/1.0}
+    volumes:
+      - ./data:/data
+      - ./deploy/watchlist.docker.json:/app/watchlist.json:ro
+    ports:
+      - '${WATCHER_B_PUBLISH:-8082}:8082'
+    depends_on:
+      - demo-site
+
+  # Public HTTPS — enable with: docker compose --profile https up -d caddy
+  # Requires SITE_ADDRESS in .env (Azure DNS label hostname).
+  caddy:
+    profiles: ['https']
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
       - demo-site
 
   bot:
@@ -86,5 +146,8 @@ services:
       - ./data:/data
     depends_on:
       - app
-    # Stretch S4 follow-and-alert (Stage 6B verifier path still optional).
     command: ['node', 'packages/bot/dist/main.js']
+
+volumes:
+  caddy_data:
+  caddy_config:

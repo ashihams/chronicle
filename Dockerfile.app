@@ -1,7 +1,7 @@
 # Indexer API + built web UI (+ bot sources for a future Stage 6B entrypoint).
 # Build from the repo root:
 #   docker build -f Dockerfile.app -t chronicle-app .
-FROM node:20-slim AS build
+FROM node:20-bookworm-slim AS build
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
@@ -22,7 +22,7 @@ RUN pnpm install --frozen-lockfile \
   && pnpm --filter @chronicle/bot build \
   && pnpm --filter @chronicle/cli build
 
-FROM node:20-slim
+FROM node:20-bookworm-slim
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends poppler-utils ca-certificates \

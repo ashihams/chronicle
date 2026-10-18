@@ -82,6 +82,8 @@ export function heuristicExtract(text: string, title: string | null = null): Ext
     amount_inr: amountInr !== null && Number.isFinite(amountInr) ? amountInr : null,
     declared_supersedes: supersedes,
     summary_en: 'fields extracted by rules',
+    summary_ta: null,
+    summary_hi: null,
     severity: 0,
     confidence: 0.3,
   };

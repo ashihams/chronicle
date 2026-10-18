@@ -1,0 +1,22 @@
+# Public HTTPS for Azure (or any VPS). Set SITE_ADDRESS in .env, e.g.:
+#   SITE_ADDRESS=chronicle-demo.centralindia.cloudapp.azure.com
+# Compose mounts this file and passes the env var into the caddy container.
+#
+#   https://$SITE_ADDRESS/           → Chronicle UI + API (app:8080)
+#   https://$SITE_ADDRESS/demo/...   → synthetic demo site (demo-site:4000)
+#
+# Watcher A uses the internal Docker DNS (http://demo-site:4000).
+# Watcher B (other network) should fetch https://$SITE_ADDRESS/demo/circulars/...
+
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# Strip /demo prefix so the demo app still sees /circulars and /admin.
+	handle_path /demo/* {
+		reverse_proxy demo-site:4000
+	}
+
+	handle {
+		reverse_proxy app:8080
+	}
+}

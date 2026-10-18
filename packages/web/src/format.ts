@@ -82,6 +82,23 @@ export function flagExplanation(kind: string): string {
  * Stretch S3 UI copy for `sig_status`. Never says "authentic".
  * Unsigned is neutral — many genuine circulars have no digital signature.
  */
+export type SummaryLang = 'en' | 'ta' | 'hi';
+
+/** Pick a localized summary; fall back to English. TA/HI are machine-generated. */
+export function pickSummary(
+  lang: SummaryLang,
+  summaries: { summary_en?: string | null; summary_ta?: string | null; summary_hi?: string | null },
+): { text: string | null; machineGenerated: boolean } {
+  if (lang === 'ta' && summaries.summary_ta) {
+    return { text: summaries.summary_ta, machineGenerated: true };
+  }
+  if (lang === 'hi' && summaries.summary_hi) {
+    return { text: summaries.summary_hi, machineGenerated: true };
+  }
+  const en = summaries.summary_en ?? null;
+  return { text: en, machineGenerated: false };
+}
+
 export function signatureWording(status: string | null | undefined): string | null {
   switch (status) {
     case 'signed_valid':

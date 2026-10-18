@@ -24,6 +24,8 @@ const GOOD = {
   amount_inr: 1500,
   declared_supersedes: null,
   summary_en: 'The application deadline moved from 30 October to 20 October 2026.',
+  summary_ta: 'விண்ணப்பக் கடைசி நாள் 30 அக்டோபரிலிருந்து 20 அக்டோபர் 2026 ஆக மாறியது.',
+  summary_hi: 'आवेदन की अंतिम तिथि 30 अक्टूबर से 20 अक्टूबर 2026 हो गई।',
   severity: 2,
   confidence: 0.9,
 };

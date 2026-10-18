@@ -1,6 +1,6 @@
 # Synthetic demo government site. Build from the repo root:
 #   docker build -f packages/demo-site/Dockerfile -t chronicle-demo .
-FROM node:20-slim AS build
+FROM node:20-bookworm-slim AS build
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
@@ -16,9 +16,9 @@ COPY packages/demo-site ./packages/demo-site
 RUN pnpm install --frozen-lockfile --filter @chronicle/demo-site... \
   && pnpm --filter @chronicle/core build \
   && pnpm --filter @chronicle/demo-site build \
-  && pnpm --filter @chronicle/demo-site deploy --prod --legacy /deploy
+  && pnpm --filter @chronicle/demo-site deploy --prod /deploy
 
-FROM node:20-slim
+FROM node:20-bookworm-slim
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \

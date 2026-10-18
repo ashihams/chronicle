@@ -77,6 +77,8 @@ export interface DocDetail {
     deadline_ts: number | null;
     amount_paise: number | null;
     summary_en: string | null;
+    summary_ta?: string | null;
+    summary_hi?: string | null;
   }[];
   flags: {
     id: number;
