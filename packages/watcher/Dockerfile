@@ -1,6 +1,6 @@
 # Community / compose watcher image. Build from the repo root:
 #   docker build -f packages/watcher/Dockerfile -t chronicle-watcher .
-FROM node:20-slim AS build
+FROM node:20-bookworm-slim AS build
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
@@ -18,9 +18,9 @@ COPY packages/demo-site/package.json ./packages/demo-site/package.json
 RUN pnpm install --frozen-lockfile --filter @chronicle/watcher... \
   && pnpm --filter @chronicle/core build \
   && pnpm --filter @chronicle/watcher build \
-  && pnpm --filter @chronicle/watcher deploy --prod --legacy /deploy
+  && pnpm --filter @chronicle/watcher deploy --prod /deploy
 
-FROM node:20-slim
+FROM node:20-bookworm-slim
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends poppler-utils ca-certificates \

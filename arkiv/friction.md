@@ -128,7 +128,7 @@ Each entry follows this template:
 - Expected: Watcher writes visible to the indexer API.
 - Actual: Each process gets its own `FakeArkivNetwork`. Entities never cross the container boundary.
 - Reproduce: 1. `docker compose up` with `ARKIV_MODE=fake`. 2. Watcher writes observations. 3. `GET /api/docs` on the app container stays empty.
-- Impact: Local multi-container demos need `ARKIV_MODE=live` with funded keys, or `pnpm dev:fake` (one process). Documented in README and compose comments.
+- Impact: Compose now defaults to **`ARKIV_MODE=live`**. Fake remains for `pnpm dev:fake` / CI only. Multi-container stacks need funded `WATCHER_PRIVATE_KEY` + `WATCHER_B_PRIVATE_KEY`.
 - Suggested fix: N/A (fake mode is intentionally local). Optional: a shared fake backend over a socket was out of scope.
 
 ### getEntity has no creating transaction hash (workaround in production path)

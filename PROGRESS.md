@@ -13,9 +13,9 @@
 - [x] S7 evidence bundle + CLI verify
 - [x] S8 Docker, compose, community watcher instructions
 - [x] S9 schema.md, friction.md, README, privacy tests, seed demo
-- [ ] Two distinct funded wallets, two networks, observations on live Tiramisu
-- [ ] 10-20 real public pages watched since 14 Oct (HUMAN)
-- [ ] Deployment public and stable
+- [ ] Two distinct funded wallets, two networks, observations on live Tiramisu (HUMAN: fund keys; compose has watcher-a/b)
+- [ ] 10-20 real public pages watched since 14 Oct (HUMAN: 7 real listing pages enabled in watchlist; confirm polls + ≥1 change)
+- [ ] Deployment public and stable (HUMAN: VPS + `deploy/Caddyfile` HTTPS)
 - [ ] Demo video <= 3 minutes (Stage 10 HUMAN)
 - [ ] Form submitted, SHA recorded (Stage 10 HUMAN)
 - [ ] Stretch items attempted only after core, cut at 17 Oct 12:00 IST
@@ -202,7 +202,15 @@ Stage 10 has **no application code**. Checklist for the owner (spec Appendix C +
 8. **Record final commit SHA** at submit time. **No history rewrites** afterward.
 9. Confirm `LICENSE` owner name, explorer link formats, no secrets in git (`gitleaks` / `git log -p` scan).
 
-Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct). Stretch continues on `stretch-s1`.
+Cursor stack through Stage 10 is on `main` (stacked PRs #2–#10 merged 17 Oct). Stretch stacked through S6.
+
+### Live submission gate (18 Oct)
+
+- Compose / `.env.example` default **`ARKIV_MODE=live`** (not fake). `watcher-b` service with `VANTAGE=eu-vps` and `WATCHER_B_PRIVATE_KEY`.
+- Watchlist: 7 real public listing pages enabled (MEA, GISO, HAREDA, DOE, RBI, SEBI, eGazette) + synthetic demos (for controlled live mutations with `ALLOW_DEMO=1`).
+- Wallets recorded in `arkiv/schema.md` (A = `0x34cc…`, B = `0x11d34e…`). HUMAN must fund both and run B on distinct egress.
+- Public HTTPS example: `deploy/Caddyfile`. Explorer: `https://tiramisu.explorer.arkiv.network/entity/<key>`.
+- **Azure public HTTPS:** Compose profile `https` runs Caddy (`deploy/Caddyfile`) with `SITE_ADDRESS` (e.g. `*.cloudapp.azure.com`). `/` → app, `/demo/*` → demo-site. `watcher-b` is profile-gated off the A VM. `ALLOW_DEMO` defaults to **0**. Guide: `deploy/AZURE.md`. B watchlist template: `deploy/watchlist.azure-b.template.json`. HUMAN: create Azure VM, set DNS label, `.env`, `docker compose --profile https up`, run B elsewhere.
 
 ### Stretch S1 (contradictions)
 

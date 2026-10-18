@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "indexes": [
+    {
+      "index_id": "demo-index",
+      "url": "__SITE__/demo/circulars/",
+      "mode": "archive",
+      "link_selector": "a.notice-link",
+      "max_pages": 1
+    },
+    {
+      "index_id": "mea-circulars",
+      "url": "https://www.mea.gov.in/circulars-notifications",
+      "mode": "archive",
+      "link_selector": "a[href]",
+      "max_pages": 1
+    }
+  ],
+  "items": [
+    {
+      "notice_id": "demo-001",
+      "department": "demo-dept-a",
+      "scheme": "demo-scheme-1",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "__SITE__/demo/circulars/001",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "__SITE__/demo/circulars/001.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "demo-002",
+      "department": "demo-dept-b",
+      "scheme": "demo-scheme-2",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "__SITE__/demo/circulars/002",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "__SITE__/demo/circulars/002.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "demo-003",
+      "department": "demo-dept-c",
+      "scheme": "demo-scheme-3",
+      "lang": "en",
+      "index_id": "demo-index",
+      "sources": [
+        {
+          "url": "__SITE__/demo/circulars/003",
+          "kind": "page",
+          "content_selector": "main",
+          "must_contain": ["circular no."],
+          "poll_hours": 1
+        },
+        {
+          "url": "__SITE__/demo/circulars/003.pdf",
+          "kind": "pdf",
+          "poll_hours": 1
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "mea-circulars-list",
+      "department": "mea",
+      "lang": "en",
+      "index_id": "mea-circulars",
+      "sources": [
+        {
+          "url": "https://www.mea.gov.in/circulars-notifications",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "giso-circulars-list",
+      "department": "giso",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://giso.gov.in/document-category/circulars-notifications",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "hareda-dnre-notices",
+      "department": "hareda",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://hareda.gov.in/dnre-notices-circulars",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "doe-circulars-list",
+      "department": "doe",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://doe.gov.in/circulars",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "rbi-press-releases",
+      "department": "rbi",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "sebi-circulars-list",
+      "department": "sebi",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&smid=0&ssid=7",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    },
+    {
+      "notice_id": "egazette-portal",
+      "department": "egazette",
+      "lang": "en",
+      "sources": [
+        {
+          "url": "https://egazette.gov.in/",
+          "kind": "page",
+          "poll_hours": 6
+        }
+      ],
+      "enabled": true
+    }
+  ]
+}

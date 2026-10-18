@@ -28,11 +28,22 @@ describe('parseWatchlist', () => {
   it('accepts the repo watchlist with demo entries and disabled TODO placeholders', () => {
     const parsed = parseWatchlist(JSON.parse(readFileSync(repoWatchlist, 'utf8')));
     const todo = parsed.items.filter((i) => i.sources.some((s) => s.url === TODO_URL));
-    expect(todo.length).toBeGreaterThanOrEqual(10);
+    expect(todo.length).toBeGreaterThanOrEqual(5);
     expect(todo.length).toBeLessThanOrEqual(20);
     expect(todo.every((i) => !i.enabled)).toBe(true);
-    const demo = parsed.items.filter((i) => i.enabled);
-    expect(demo.map((i) => i.notice_id)).toEqual(['demo-001', 'demo-002', 'demo-003']);
+    const demos = parsed.items.filter((i) => i.notice_id.startsWith('demo-'));
+    expect(demos.filter((i) => i.enabled).map((i) => i.notice_id)).toEqual([
+      'demo-001',
+      'demo-002',
+      'demo-003',
+    ]);
+    const enabledReal = parsed.items.filter(
+      (i) => i.enabled && !i.notice_id.startsWith('demo-'),
+    );
+    expect(enabledReal.length).toBeGreaterThanOrEqual(7);
+    expect(new Set(enabledReal.map((i) => i.department))).toEqual(
+      new Set(['doe', 'egazette', 'giso', 'hareda', 'mea', 'rbi', 'sebi']),
+    );
     expect(parsed.indexes[0]?.link_selector).toBe('a.notice-link');
   });
 

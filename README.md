@@ -63,12 +63,17 @@ Seed the demo sequence (deadline edit → soft remove → restore) with two synt
 pnpm seed:demo
 ```
 
-## Live mode setup
+## Live mode setup (required for submission)
+
+Compose and `.env.example` default to **`ARKIV_MODE=live`**. Fake mode is only for single-process host demos (`pnpm dev:fake`) and CI.
 
 1. Copy `.env.example` → `.env` (never commit `.env`).
-2. Set `ARKIV_MODE=live` and a **funded** `WATCHER_PRIVATE_KEY` (Tiramisu faucet via [hub.arkiv.network](https://hub.arkiv.network) / [docs.arkiv.network](https://docs.arkiv.network)).
-3. Optional: `GROQ_API_KEY` for LLM extraction (otherwise rule-based `rules-v1`).
-4. Run demo site, watcher, and indexer (separate terminals), or `docker compose up --build` with live keys.
+2. Fund **two** Tiramisu wallets (faucet via [hub.arkiv.network](https://hub.arkiv.network) / [docs.arkiv.network](https://docs.arkiv.network)).
+3. Set `WATCHER_PRIVATE_KEY` (watcher-a / `in-vps`) and `WATCHER_B_PRIVATE_KEY` (watcher-b / `eu-vps`).
+4. Optional: `GROQ_API_KEY` for LLM + Tamil/Hindi summaries.
+5. `docker compose up --build` — demo + app + watcher-a (live Arkiv). On Windows, if `localhost:8080` is stolen, use `PORT=8090` for host runs.
+6. **Public HTTPS (recommended):** Azure VM + Caddy — follow [`deploy/AZURE.md`](deploy/AZURE.md). Watcher B runs on a **different** network (second laptop / Actions), not on that VM.
+
 
 ```bash
 pnpm dev:demo
@@ -76,7 +81,28 @@ pnpm dev:watcher          # add -- --once for a single pass
 pnpm dev:indexer
 ```
 
-Wallet addresses that wrote live entities are listed in [`arkiv/schema.md`](arkiv/schema.md) (HUMAN completes the final list).
+Wallet addresses: [`arkiv/schema.md`](arkiv/schema.md). Watchlist includes **real** `.gov.in` listing pages plus synthetic demos (demos need `ALLOW_DEMO=1` under `NODE_ENV=production`). Controlled demo mutations with live keys also land on Arkiv — that is intentional for the video, not a fake chain.
+
+### Public deployment (Azure + Caddy)
+
+Full steps: [`deploy/AZURE.md`](deploy/AZURE.md).
+
+```bash
+# on the VM, after .env has SITE_ADDRESS + WATCHER_PRIVATE_KEY (A) + strong DEMO_ADMIN_TOKEN:
+docker compose --profile https up -d --build demo-site app watcher-a caddy
+```
+
+- UI: `https://$SITE_ADDRESS/`
+- Demo (for B): `https://$SITE_ADDRESS/demo/circulars/…`
+- B watchlist template: [`deploy/watchlist.azure-b.template.json`](deploy/watchlist.azure-b.template.json) (`sed` replace `__SITE__`)
+
+### Fallback: Cloudflare quick tunnel (laptop only)
+
+Unstable for the “public stable HTTPS” gate; use only if Azure is blocked. Do not restart `cloudflared` after submitting the URL. Keep a video as primary evidence.
+
+#### Watcher B (second laptop / other network)
+
+Different network than the Azure VM. Wallet B key only. `ALLOW_DEMO=1` while recording. Watchlist from the azure-b template (or temporary tunnel URLs).
 
 ## Reproduce the demo
 
@@ -115,13 +141,17 @@ A wallet on the **same machine** (or the same residential IP / cloud region) as 
 docker compose up --build
 ```
 
+Requires funded `WATCHER_PRIVATE_KEY` in `.env`. Optional second watcher on this host: `docker compose --profile watcher-b up -d` (needs `WATCHER_B_PRIVATE_KEY`); prefer a **different network** for submission.
+
 - UI: http://localhost:8080  
 - Demo site: http://localhost:4000  
-- Watcher health: http://localhost:8081/health  
+- Watcher A health: http://localhost:8081/health (`VANTAGE=in-vps`)  
 
-Compose sets `ALLOW_DEMO=1` so the synthetic demo watchlist is allowed under `NODE_ENV=production`. For real pages, omit `ALLOW_DEMO` and point `WATCHLIST_PATH` / `WATCHLIST_URL` at non-demo entries.
+Set `ALLOW_DEMO=1` only when you need synthetic demo mutations under `NODE_ENV=production`. Real MEA/GISO/HAREDA/DOE/RBI/SEBI/eGazette listing pages are in the watchlist either way.
 
-Fake mode is **per-process**: watcher and indexer containers do not share an in-memory chain. Use live mode with funded keys for a shared chain across containers, or `pnpm dev:fake` on the host.
+Public HTTPS: `docker compose --profile https up` with `SITE_ADDRESS` set — see [`deploy/AZURE.md`](deploy/AZURE.md).
+
+For a fake in-memory chain on the host only: `pnpm dev:fake` (do not use compose fake across containers).
 
 ## Verify a bundle
 

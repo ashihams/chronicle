@@ -155,16 +155,18 @@ From Stage 1 probe (see `friction.md` and `probe-results.json`):
 
 ## Wallet addresses used
 
-**HUMAN:** replace placeholders with the final funded list before submission.
+Private keys live only in `.env` / deployment secrets (`WATCHER_PRIVATE_KEY`, `WATCHER_B_PRIVATE_KEY`). Never commit keys.
 
 | Role | Address | Notes |
 |---|---|---|
-| Watcher A (VPS / live demo) | `0x34ccbad283b69a61bd8dd01b97fe6c27377524fe` | Used on live Tiramisu 16 Oct (PROGRESS Stage 4) |
-| Probe / second wallet B | `0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c` | Permission tests (PROGRESS Stage 1) |
-| Watcher B (second network) | _(HUMAN)_ | Second vantage for multi-writer demo |
-| Community watchers | _(HUMAN)_ | Optional; distinct keys and networks |
+| Watcher A (`VANTAGE=in-vps`) | `0x34ccbad283b69a61bd8dd01b97fe6c27377524fe` | Live Tiramisu writes (PROGRESS Stage 4); compose `watcher-a` |
+| Watcher B (`VANTAGE=eu-vps`) | `0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c` | Second funded wallet (same address as probe B). Run on a **different network/host** than A for independent vantage. Compose `watcher-b` ← `WATCHER_B_PRIVATE_KEY` |
+| Probe / permission tests | `0x11d34e55Bf7c8FC75FdA5d073653D4B0768d817c` | `PROBE_SECOND_PRIVATE_KEY` / `pnpm probe` |
+| Community watchers | _(optional)_ | Distinct keys + `VANTAGE=community-<name>` |
 
-Never commit private keys. Keys live only in `.env` / deployment secrets.
+**Explorer:** entity deep links use `{EXPLORER_BASE}/entity/<key>` (default `https://tiramisu.explorer.arkiv.network`). After the first live write, open a doc timeline in the UI and confirm the explorer link for an observation key.
+
+**HUMAN still required:** fund both wallets via the Tiramisu faucet; run A and B on distinct egress; keep a public HTTPS URL (see `deploy/Caddyfile`) up through 23 Oct.
 
 ## Derived data is recomputable
 

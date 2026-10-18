@@ -7,6 +7,13 @@
       "mode": "archive",
       "link_selector": "a.notice-link",
       "max_pages": 1
+    },
+    {
+      "index_id": "mea-circulars",
+      "url": "https://www.mea.gov.in/circulars-notifications",
+      "mode": "archive",
+      "link_selector": "a[href]",
+      "max_pages": 1
     }
   ],
   "items": [
@@ -77,159 +84,130 @@
       "enabled": true
     },
     {
-      "notice_id": "real-todo-01",
-      "department": "todo",
+      "notice_id": "mea-circulars-list",
+      "department": "mea",
       "lang": "en",
+      "index_id": "mea-circulars",
       "sources": [
         {
-          "url": "TODO",
+          "url": "https://www.mea.gov.in/circulars-notifications",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-02",
-      "department": "todo",
+      "notice_id": "giso-circulars-list",
+      "department": "giso",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
+          "url": "https://giso.gov.in/document-category/circulars-notifications/",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-03",
-      "department": "todo",
+      "notice_id": "hareda-dnre-notices",
+      "department": "hareda",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
-          "kind": "pdf",
-          "poll_hours": 6
-        }
-      ],
-      "enabled": false
-    },
-    {
-      "notice_id": "real-todo-04",
-      "department": "todo",
-      "lang": "en",
-      "sources": [
-        {
-          "url": "TODO",
+          "url": "https://hareda.gov.in/dnre-notices-circulars/",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-05",
-      "department": "todo",
+      "notice_id": "doe-circulars-list",
+      "department": "doe",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
+          "url": "https://doe.gov.in/circulars",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-06",
-      "department": "todo",
+      "notice_id": "rbi-press-releases",
+      "department": "rbi",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
-          "kind": "pdf",
-          "poll_hours": 6
-        }
-      ],
-      "enabled": false
-    },
-    {
-      "notice_id": "real-todo-07",
-      "department": "todo",
-      "lang": "en",
-      "sources": [
-        {
-          "url": "TODO",
+          "url": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-08",
-      "department": "todo",
+      "notice_id": "sebi-circulars-list",
+      "department": "sebi",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
+          "url": "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=1&ssid=7&smid=0",
           "kind": "page",
           "poll_hours": 6
         }
       ],
-      "enabled": false
+      "enabled": true
     },
     {
-      "notice_id": "real-todo-09",
-      "department": "todo",
+      "notice_id": "egazette-portal",
+      "department": "egazette",
       "lang": "en",
       "sources": [
         {
-          "url": "TODO",
-          "kind": "pdf",
-          "poll_hours": 6
-        }
-      ],
-      "enabled": false
-    },
-    {
-      "notice_id": "real-todo-10",
-      "department": "todo",
-      "lang": "en",
-      "sources": [
-        {
-          "url": "TODO",
+          "url": "https://egazette.gov.in/",
           "kind": "page",
           "poll_hours": 6
         }
       ],
+      "enabled": true
+    },
+    {
+      "notice_id": "real-spare-01",
+      "department": "todo",
+      "lang": "en",
+      "sources": [{ "url": "TODO", "kind": "page", "poll_hours": 6 }],
       "enabled": false
     },
     {
-      "notice_id": "real-todo-11",
+      "notice_id": "real-spare-02",
       "department": "todo",
       "lang": "en",
-      "sources": [
-        {
-          "url": "TODO",
-          "kind": "page",
-          "poll_hours": 6
-        }
-      ],
+      "sources": [{ "url": "TODO", "kind": "page", "poll_hours": 6 }],
       "enabled": false
     },
     {
-      "notice_id": "real-todo-12",
+      "notice_id": "real-spare-03",
       "department": "todo",
       "lang": "en",
-      "sources": [
-        {
-          "url": "TODO",
-          "kind": "pdf",
-          "poll_hours": 6
-        }
-      ],
+      "sources": [{ "url": "TODO", "kind": "pdf", "poll_hours": 6 }],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-spare-04",
+      "department": "todo",
+      "lang": "en",
+      "sources": [{ "url": "TODO", "kind": "page", "poll_hours": 6 }],
+      "enabled": false
+    },
+    {
+      "notice_id": "real-spare-05",
+      "department": "todo",
+      "lang": "en",
+      "sources": [{ "url": "TODO", "kind": "page", "poll_hours": 6 }],
       "enabled": false
     }
   ]
